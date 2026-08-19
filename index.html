@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LoopGravity | Autonomous Agentic Loops for Google Antigravity</title>
+  <meta name="description" content="Diseña el flujo una vez. Deja que bucles agénticos autónomos construyan, auditen y entreguen tu software con estándares de producción en minutos en Google Antigravity.">
+  <meta property="og:title" content="LoopGravity | Autonomous Agentic Loops for Google Antigravity">
+  <meta property="og:description" content="Orquestación agéntica de ciclo cerrado con escuadrones especializados, tipado estricto y multi-tenancy nativo.">
+  <meta property="og:type" content="website">
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Main Navigation -->
+  <header class="main-header">
+    <div class="app-container nav-content">
+      <a href="#" class="brand-logo">
+        <div class="logo-icon">⚡</div>
+        <span>LoopGravity</span>
+      </a>
+      <ul class="nav-links">
+        <li><a href="#studio" class="nav-link" data-i18n="nav_studio">Studio & Runner</a></li>
+        <li><a href="#video-studio" class="nav-link" data-i18n="nav_video">🎬 Video Studio (10s)</a></li>
+        <li><a href="#crm-section" class="nav-link" data-i18n="nav_crm">📊 CRM & Métricas</a></li>
+        <li><a href="#manual" class="nav-link" data-i18n="nav_manual">📖 Manual Didáctico</a></li>
+        <li><a href="#features" class="nav-link" data-i18n="nav_features">Capacidades</a></li>
+        <li><a href="#blueprints" class="nav-link" data-i18n="nav_blueprints">Plantillas de Squads</a></li>
+        <li><a href="#pricing" class="nav-link" data-i18n="nav_pricing">Precios</a></li>
+      </ul>
+      <div class="nav-actions">
+        <!-- Language Switcher ES / EN -->
+        <div class="lang-switcher" aria-label="Language Selector">
+          <button class="lang-btn active" data-lang="es" title="Español">ES</button>
+          <button class="lang-btn" data-lang="en" title="English">EN</button>
+        </div>
+        <a href="#studio" class="btn btn-primary" data-i18n="nav_launch">Iniciar Studio</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="app-container">
+
+    <!-- Hero Section -->
+    <section class="hero-section">
+      <div class="hero-content">
+        <span class="badge badge-glow" data-i18n="hero_badge">⚡ Motor de Bucles Autónomos para Antigravity</span>
+        <h1 class="hero-title" data-i18n="hero_title">
+          De la Arquitectura a Producción en un <span class="gradient-text">Único Bucle Autónomo</span>.
+        </h1>
+        <p class="hero-subtitle" data-i18n="hero_subtitle">
+          Orquesta escuadrones de IA especializados que diseñan, programan, auditan y auto-corrigen tus aplicaciones directamente en Google Antigravity. Cero alucinaciones. 100% tipado seguro.
+        </p>
+        <div class="hero-cta-group">
+          <a href="#studio" class="btn btn-primary" data-i18n="hero_cta_start">Iniciar Bucle en Vivo</a>
+          <button class="btn btn-cyan btn-export-trigger" data-i18n="hero_cta_export">Exportar Blueprint .agents/</button>
+        </div>
+        <div class="hero-trust">
+          <span data-i18n="hero_trust_1">✓ Sin tarjeta de crédito</span>
+          <span data-i18n="hero_trust_2">✓ Genera .agents/ listos para producción</span>
+          <span data-i18n="hero_trust_3">✓ Aislamiento multi-tenant garantizado</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Studio & Interactive Loop Runner -->
+    <section class="studio-section" id="studio">
+      <div class="studio-header">
+        <div>
+          <span class="badge badge-cyan" data-i18n="studio_badge">Simulación Interactiva</span>
+          <h2 style="font-family: var(--font-display); font-size: var(--text-2xl); margin-top: 6px;" data-i18n="studio_title">
+            LoopGravity Studio: Ejecutor de Pipelines Autónomos
+          </h2>
+        </div>
+        <div class="tenant-selector">
+          <span data-i18n="tenant_scope_label">Alcance Tenant:</span>
+          <select id="tenant-select" aria-label="Tenant Selector">
+            <option value="tenant-nexus-01">tenant-nexus-01 (Nexus AI Labs - Pro)</option>
+            <option value="tenant-apex-02">tenant-apex-02 (Apex FinTech - Enterprise)</option>
+            <option value="tenant-solo-03">tenant-solo-03 (Alex Solo Lab - Hacker)</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="margin-bottom: 20px; display: flex; gap: 12px; flex-wrap: wrap;">
+        <input 
+          type="text" 
+          id="loop-spec-input" 
+          class="form-input" 
+          value="CRM para agencias con gestión de leads, autenticación multi-tenant y métricas en tiempo real"
+          placeholder="Describe el bucle de la aplicación a generar..."
+        />
+        <button class="btn btn-primary" id="btn-run-loop" data-i18n="btn_execute">▶ Ejecutar Bucle Cerrado</button>
+      </div>
+
+      <div class="studio-grid">
+        <!-- Left: Stage Visualizer -->
+        <div class="panel-card">
+          <div class="panel-title">
+            <span data-i18n="pipeline_title">Pipeline de Ejecución del Escuadrón</span>
+            <span class="badge badge-glow" data-i18n="pipeline_badge">6 Fases Activas</span>
+          </div>
+
+          <div class="loop-pipeline">
+            <div class="stage-step" id="stage-0">
+              <div class="stage-index">01</div>
+              <div class="stage-info">
+                <div class="stage-name" data-i18n="stage_0_title">Descubrimiento & Spec</div>
+                <div class="stage-subagent" data-i18n="stage_0_sub">@investigador → Análisis de mercado & JTBD</div>
+              </div>
+            </div>
+
+            <div class="stage-step" id="stage-1">
+              <div class="stage-index">02</div>
+              <div class="stage-info">
+                <div class="stage-name" data-i18n="stage_1_title">Identidad & Tokens</div>
+                <div class="stage-subagent" data-i18n="stage_1_sub">@branding → Tokens CSS & tono de voz</div>
+              </div>
+            </div>
+
+            <div class="stage-step" id="stage-2">
+              <div class="stage-index">03</div>
+              <div class="stage-info">
+                <div class="stage-name" data-i18n="stage_2_title">Campaña & Copywriting</div>
+                <div class="stage-subagent" data-i18n="stage_2_sub">@creativo → Narrativa PAS/AIDA & copy deck</div>
+              </div>
+            </div>
+
+            <div class="stage-step" id="stage-3">
+              <div class="stage-index">04</div>
+              <div class="stage-info">
+                <div class="stage-name" data-i18n="stage_3_title">Construcción Paralela</div>
+                <div class="stage-subagent" data-i18n="stage_3_sub">@web & @app-developer → SaaS & Frontend</div>
+              </div>
+            </div>
+
+            <div class="stage-step" id="stage-4">
+              <div class="stage-index">05</div>
+              <div class="stage-info">
+                <div class="stage-name" data-i18n="stage_4_title">Auditoría & Auto-Healing</div>
+                <div class="stage-subagent" data-i18n="stage_4_sub">@auditor → Chequeo de tipos, tests & seguridad</div>
+              </div>
+            </div>
+
+            <div class="stage-step" id="stage-5">
+              <div class="stage-index">06</div>
+              <div class="stage-info">
+                <div class="stage-name" data-i18n="stage_5_title">Consolidación & DoD</div>
+                <div class="stage-subagent" data-i18n="stage_5_sub">@director → Artefacto verificado para despliegue</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Telemetry Console -->
+        <div class="panel-card">
+          <div class="panel-title">
+            <span data-i18n="telemetry_title">Telemetría de Observabilidad Estructurada</span>
+            <span class="badge badge-cyan" data-i18n="telemetry_badge">En Vivo</span>
+          </div>
+
+          <div class="console-wrapper">
+            <div class="console-header">
+              <div class="console-dots">
+                <span class="console-dot dot-red"></span>
+                <span class="console-dot dot-yellow"></span>
+                <span class="console-dot dot-green"></span>
+              </div>
+              <span>antigravity-loop-runner.log</span>
+            </div>
+            <div class="console-body" id="console-logs">
+              <div class="log-entry">
+                <span class="log-time">[Ready]</span>
+                <span class="log-agent">[@system]</span>
+                <span class="log-msg" data-i18n="ready_log">Motor de bucles inicializado en modo estricto. Presiona "Ejecutar Bucle Cerrado" para iniciar la simulación.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Video Prompt Studio Section (Idea to Screenplay + HR Sheets with Image/Text + Multimodal Production) -->
+    <section class="video-studio-section" id="video-studio">
+      <div class="section-header">
+        <span class="badge badge-glow" data-i18n="video_badge">Estudio Cinematográfico: Idea → Guión → Hojas HR → Video IA</span>
+        <h2 class="section-title" data-i18n="video_title">Video Studio: De la Idea al Guión Cinematográfico con Hojas HR (Imagen & Texto)</h2>
+        <p class="section-desc" data-i18n="video_desc">Genera guiones cinematográficos a partir de una idea y contrólalos mediante Hojas de Referencia (HR Model Sheets) con soporte para imágenes reales o descripciones técnicas, encadenando de 10s a 100s de video con audio sincronizado.</p>
+      </div>
+
+      <!-- STEP 0: Project Persistence Bar & Asset Catalog Access -->
+      <div class="panel-card project-toolbar-card" style="margin-bottom: 20px; padding: 14px 20px; background: rgba(30, 40, 61, 0.6); border: 1px solid var(--border-card);">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+          <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+            <span style="font-size: var(--text-xs); font-weight: 700; color: var(--color-accent-cyan); text-transform: uppercase;">📂 Proyecto Activo:</span>
+            <select id="project-saved-select" class="form-input" style="width: 220px; padding: 6px 10px; font-size: var(--text-xs);" aria-label="Proyectos Guardados">
+              <option value="">(Borrador sin guardar)</option>
+            </select>
+            <input type="text" id="project-name-input" class="form-input" style="width: 200px; padding: 6px 10px; font-size: var(--text-xs);" placeholder="Nombre del proyecto..." value="My Cake Studio 40s V1">
+            <button class="btn btn-sm btn-primary" id="btn-save-project">💾 Guardar</button>
+            <button class="btn btn-sm btn-secondary" id="btn-new-project">➕ Nuevo</button>
+            <button class="btn btn-sm btn-secondary" id="btn-delete-project" style="color: var(--color-danger);" title="Eliminar Proyecto">🗑️</button>
+          </div>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span class="badge badge-glow" id="project-status-badge">⚡ Auto-guardado Activo</span>
+            <button class="btn btn-sm btn-cyan" id="btn-open-catalog-modal">📚 Catálogo de Assets</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 1: Idea to Cinematic Screenplay Generator -->
+      <div class="panel-card idea-screenplay-card" style="margin-bottom: 24px;">
+        <div class="panel-title">
+          <span>💡 1. Concepto Creativo & Generador de Guión Cinematográfico</span>
+          <span class="badge badge-cyan">Idea-to-Screenplay Engine</span>
+        </div>
+        <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end;">
+          <div style="flex: 1; min-width: 260px;">
+            <label for="video-idea-input" style="font-size: var(--text-xs); font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; display: block;">Idea Central / Pitch del Video:</label>
+            <input type="text" id="video-idea-input" class="form-input" placeholder="Ej: Pastelería My Cake Studio presentada por Sofía Coff y Moisés Guti en su taller gourmet...">
+          </div>
+          <div style="width: 200px;">
+            <label for="video-preset-select" data-i18n="video_label_preset" style="font-size: var(--text-xs); font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; display: block;">Plantilla de Producción:</label>
+            <select id="video-preset-select" class="form-input">
+              <option value="cake_studio" selected>My Cake Studio (Sofía Coff & Moisés Guti)</option>
+              <option value="saas_property">Property OS (SaaS con Moisés Guti)</option>
+              <option value="saas_demo">LoopGravity Studio (AI Dev & Founder)</option>
+              <option value="hardware_reveal">Hardware Robotics & Cleanroom</option>
+            </select>
+          </div>
+          <div style="width: 190px;">
+            <label for="video-character-count" style="font-size: var(--text-xs); font-weight: 600; color: var(--color-accent-cyan); margin-bottom: 6px; display: block;">👥 Personajes & Diálogo:</label>
+            <select id="video-character-count" class="form-input" style="border-color: rgba(6, 182, 212, 0.4);">
+              <option value="2" selected>2 Personajes (Diálogo & Lip-Sync)</option>
+              <option value="1">1 Personaje (Monólogo / Solo)</option>
+              <option value="3">3+ Personajes (Escena Coral)</option>
+            </select>
+          </div>
+          <button class="btn btn-cyan" id="btn-generate-screenplay">✨ Generar Guión Cinematográfico</button>
+        </div>
+
+        <!-- Live Screenplay Overview Banner -->
+        <div class="screenplay-summary-banner" id="screenplay-summary-banner" style="margin-top: 16px; display: flex; gap: 16px; flex-wrap: wrap; background: rgba(6, 182, 212, 0.05); border: 1px solid rgba(6, 182, 212, 0.2); padding: 12px 16px; border-radius: var(--radius-sm);">
+          <div style="flex: 1; min-width: 200px;">
+            <span style="font-size: 11px; font-weight: 700; color: var(--color-accent-cyan); text-transform: uppercase;">🎬 Logline & Arco:</span>
+            <div id="screenplay-logline-text" style="font-size: var(--text-xs); color: var(--text-primary); margin-top: 2px;">Demostración artesanal de My Cake Studio con diálogo y lip-sync sincronizado.</div>
+          </div>
+          <div>
+            <span style="font-size: 11px; font-weight: 700; color: var(--color-accent-emerald); text-transform: uppercase;">⏱️ Bloques Activos:</span>
+            <div id="screenplay-acts-count" style="font-size: var(--text-xs); color: var(--text-primary); margin-top: 2px;">3 Actos (30 Segundos Totales)</div>
+          </div>
+          <div>
+            <span style="font-size: 11px; font-weight: 700; color: #818cf8; text-transform: uppercase;">👄 Sincronización Labial:</span>
+            <div id="screenplay-vo-preview" style="font-size: var(--text-xs); color: var(--text-primary); margin-top: 2px;">2 Voces con Lip-Sync en Pantalla</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="video-studio-grid">
+        <!-- Configuration Card with HR Sheets Navigation (Image/Text Support) -->
+        <div class="panel-card">
+          <div class="panel-title">
+            <span>📋 2. Hojas de Referencia (HR) & Parámetros de Cámara</span>
+            <span class="badge badge-cyan">Image + Text Multi-Modal</span>
+          </div>
+
+          <!-- HR Sheets Sub-Tabs -->
+          <div class="hr-nav-tabs" id="hr-nav-tabs">
+            <button class="hr-tab-btn active" data-hrtab="general" data-i18n="video_tab_general">🎬 Cámara & Rig</button>
+            <button class="hr-tab-btn" data-hrtab="actor">👤 HR-Personaje 1</button>
+            <button class="hr-tab-btn" data-hrtab="actor2" id="tab-btn-actor2">👥 HR-Personaje 2</button>
+            <button class="hr-tab-btn" data-hrtab="product" data-i18n="video_tab_hr_product">💎 HR-Producto</button>
+            <button class="hr-tab-btn" data-hrtab="env" data-i18n="video_tab_hr_env">🏢 HR-Escenario</button>
+            <button class="hr-tab-btn" data-hrtab="audio" data-i18n="video_tab_audio">🎧 Audio & SFX</button>
+          </div>
+
+          <!-- HR Sheet: General & Camera Rig -->
+          <div class="hr-tab-content active" id="hr-content-general">
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="video-blocks-select" data-i18n="video_label_blocks">Duración Total & Bloques:</label>
+                <select id="video-blocks-select" class="form-input duration-highlight">
+                  <option value="1">10 Segundos (1 Bloque de 10s - Intro/Hook)</option>
+                  <option value="2">20 Segundos (2 Bloques de 10s - Teaser)</option>
+                  <option value="3">30 Segundos (3 Bloques de 10s - Spot Comercial)</option>
+                  <option value="4" selected>40 Segundos (4 Bloques de 10s - Demo Completa de 4 Actos)</option>
+                  <option value="5">50 Segundos (5 Bloques de 10s - Showcase Extendido)</option>
+                  <option value="6">60 Segundos (6 Bloques de 10s - Video Promocional 1 Minuto)</option>
+                  <option value="7">70 Segundos (7 Bloques de 10s - Deep-Dive)</option>
+                  <option value="8">80 Segundos (8 Bloques de 10s - Master Walkthrough)</option>
+                  <option value="9">90 Segundos (9 Bloques de 10s - Documental de Producto)</option>
+                  <option value="10">100 Segundos (10 Bloques de 10s - Master Film 100s)</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="video-engine-select" data-i18n="video_label_engine">Motor de Video IA Objetivo:</label>
+                <select id="video-engine-select" class="form-input">
+                  <option value="google-flow" selected>Google Labs Flow / Google Veo 2 (Model Sheets + Audio)</option>
+                  <option value="runway-gen3">Runway Gen-3 Alpha (Image-to-Video & Keyframes)</option>
+                  <option value="kling-1.5">Kling AI 1.5 (Pro Cinematic & Image Reference)</option>
+                  <option value="sora">OpenAI Sora (Continuous Master Sequence)</option>
+                  <option value="luma">Luma Dream Machine (Fluid Camera Path)</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="video-ratio-select" data-i18n="video_label_ratio">Formato / Ratio:</label>
+                <select id="video-ratio-select" class="form-input">
+                  <option value="16:9">16:9 Landscape (YouTube / Landing Page / Desktop)</option>
+                  <option value="9:16">9:16 Vertical (TikTok / Reels / Shorts / Stories)</option>
+                </select>
+              </div>
+
+              <div class="form-group" style="grid-column: 1 / -1;">
+                <label for="video-camera-input" data-i18n="video_label_camera_style">Estilo de Cinematografía, Lente & Rig:</label>
+                <input type="text" id="video-camera-input" class="form-input" placeholder="Arri Alexa Mini LF, 35mm Master Prime T1.3, Steadicam & 3-Axis Gimbal, Teal & Orange color grade, 8K fidelity">
+              </div>
+            </div>
+          </div>
+
+          <!-- HR Sheet: HR-Personaje 1 (2 Opciones: 1. Imagen Adjunta / 2. Texto) -->
+          <div class="hr-tab-content" id="hr-content-actor">
+            <div class="catalog-quick-bar" style="margin-bottom: 12px; display: flex; gap: 8px; align-items: center; background: rgba(6, 182, 212, 0.05); padding: 8px 12px; border-radius: var(--radius-sm); border: 1px solid rgba(6, 182, 212, 0.15);">
+              <span style="font-size: 11px; font-weight: 600; color: var(--color-accent-cyan);">⭐ Catálogo:</span>
+              <select id="catalog-select-actor1" class="form-input" style="flex: 1; padding: 4px 8px; font-size: var(--text-xs);" aria-label="Cargar Actor 1 de Catálogo">
+                <option value="">Cargar Actor Guardado...</option>
+              </select>
+              <button class="btn btn-sm btn-secondary" id="btn-save-actor1-to-catalog" type="button">💾 Guardar en Catálogo</button>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 12px;">
+              <label for="video-actor-name" style="font-size: var(--text-xs); font-weight: 600; color: var(--color-accent-cyan);">Nombre del Personaje 1 (Protagonista):</label>
+              <input type="text" id="video-actor-name" class="form-input" placeholder="Sofía Coff" value="Sofía Coff">
+            </div>
+
+            <div class="hr-dual-mode">
+              <label class="hr-mode-opt selected" id="opt-actor-img">
+                <input type="radio" name="hr_actor_mode" value="image" checked> 🖼️ 1. Imagen Adjunta (HR-Personaje 1)
+              </label>
+              <label class="hr-mode-opt" id="opt-actor-txt">
+                <input type="radio" name="hr_actor_mode" value="text"> 📝 2. Texto Descripción
+              </label>
+            </div>
+
+            <!-- Opción 1: Imagen Adjunta -->
+            <div id="box-actor-image-field" class="form-group" style="margin-bottom: 12px;">
+              <label for="video-actor-image-url" style="font-size: var(--text-xs); font-weight: 600; color: var(--text-secondary);">Identificador / Archivo de Imagen Adjunta (Model Sheet):</label>
+              <div style="display: flex; gap: 8px;">
+                <input type="text" id="video-actor-image-url" class="form-input" placeholder="https://loopgravity.io/assets/model_sheets/sofia_coff_character_sheet.png">
+                <button class="btn btn-sm btn-secondary" id="btn-preview-actor-img" type="button">👁️ Ver</button>
+              </div>
+              <div id="actor-image-preview-box" class="hr-image-preview" style="margin-top: 8px; max-height: 120px; overflow: hidden; border-radius: 4px; border: 1px dashed var(--border-subtle); display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.2);">
+                <span style="font-size: 11px; color: var(--text-muted);">Model Sheet Imagen Vinculada Personaje 1</span>
+              </div>
+            </div>
+
+            <!-- Opción 2: Texto Descripción -->
+            <div id="box-actor-text-field" class="form-group" style="margin-bottom: 12px; display: none;">
+              <label for="video-actor-input" data-i18n="video_label_actor_desc">Descripción Textual Canónica del Personaje 1:</label>
+              <textarea id="video-actor-input" class="form-input" rows="3" placeholder="[HR_PERSONAJE_SOFIA_COFF: Latina female pastry chef / host, late 20s, elegant dark wavy hair in stylish bun, olive long-sleeve top, denim jeans, radiant warm smile]"></textarea>
+            </div>
+
+            <div class="form-group">
+              <label for="video-actor-voice" data-i18n="video_label_actor_voice">Perfil de Voz & Tono (Personaje 1):</label>
+              <input type="text" id="video-actor-voice" class="form-input" placeholder="Voz femenina dulce y apasionada (26-29 años), ritmo dinámico, español latino">
+            </div>
+          </div>
+
+          <!-- HR Sheet: HR-Personaje 2 (Co-Presentador / Diálogo) -->
+          <div class="hr-tab-content" id="hr-content-actor2">
+            <div class="catalog-quick-bar" style="margin-bottom: 12px; display: flex; gap: 8px; align-items: center; background: rgba(6, 182, 212, 0.05); padding: 8px 12px; border-radius: var(--radius-sm); border: 1px solid rgba(6, 182, 212, 0.15);">
+              <span style="font-size: 11px; font-weight: 600; color: var(--color-accent-cyan);">⭐ Catálogo:</span>
+              <select id="catalog-select-actor2" class="form-input" style="flex: 1; padding: 4px 8px; font-size: var(--text-xs);" aria-label="Cargar Actor 2 de Catálogo">
+                <option value="">Cargar Actor Guardado...</option>
+              </select>
+              <button class="btn btn-sm btn-secondary" id="btn-save-actor2-to-catalog" type="button">💾 Guardar en Catálogo</button>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 12px;">
+              <label for="video-actor2-name" style="font-size: var(--text-xs); font-weight: 600; color: var(--color-accent-cyan);">Nombre del Personaje 2 (Co-Protagonista):</label>
+              <input type="text" id="video-actor2-name" class="form-input" placeholder="Moisés Guti" value="Moisés Guti">
+            </div>
+
+            <div class="hr-dual-mode">
+              <label class="hr-mode-opt selected" id="opt-actor2-img">
+                <input type="radio" name="hr_actor2_mode" value="image" checked> 🖼️ 1. Imagen Adjunta (HR-Personaje 2)
+              </label>
+              <label class="hr-mode-opt" id="opt-actor2-txt">
+                <input type="radio" name="hr_actor2_mode" value="text"> 📝 2. Texto Descripción
+              </label>
+            </div>
+
+            <!-- Opción 1: Imagen Adjunta -->
+            <div id="box-actor2-image-field" class="form-group" style="margin-bottom: 12px;">
+              <label for="video-actor2-image-url" style="font-size: var(--text-xs); font-weight: 600; color: var(--text-secondary);">Identificador / Archivo de Imagen Adjunta (Model Sheet):</label>
+              <div style="display: flex; gap: 8px;">
+                <input type="text" id="video-actor2-image-url" class="form-input" placeholder="https://loopgravity.io/assets/model_sheets/moises_guti_character_sheet.png">
+                <button class="btn btn-sm btn-secondary" id="btn-preview-actor2-img" type="button">👁️ Ver</button>
+              </div>
+              <div id="actor2-image-preview-box" class="hr-image-preview" style="margin-top: 8px; max-height: 120px; overflow: hidden; border-radius: 4px; border: 1px dashed var(--border-subtle); display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.2);">
+                <span style="font-size: 11px; color: var(--text-muted);">Model Sheet Imagen Vinculada Personaje 2</span>
+              </div>
+            </div>
+
+            <!-- Opción 2: Texto Descripción -->
+            <div id="box-actor2-text-field" class="form-group" style="margin-bottom: 12px; display: none;">
+              <label for="video-actor2-input">Descripción Textual Canónica del Personaje 2:</label>
+              <textarea id="video-actor2-input" class="form-input" rows="3" placeholder="[HR_PERSONAJE_MOISES_GUTI: Latino male executive, early 40s, short textured dark hair, light-blue dress shirt, dark leather belt, confident and warm smile]"></textarea>
+            </div>
+
+            <div class="form-group">
+              <label for="video-actor2-voice">Perfil de Voz & Tono (Personaje 2):</label>
+              <input type="text" id="video-actor2-voice" class="form-input" placeholder="Voz masculina ejecutiva (38-42 años), tono cálido y seguro, ritmo fluido, español neutro">
+            </div>
+          </div>
+
+          <!-- HR Sheet: HR-Producto (2 Opciones: 1. Imagen Adjunta / 2. Texto) -->
+          <div class="hr-tab-content" id="hr-content-product">
+            <div class="catalog-quick-bar" style="margin-bottom: 12px; display: flex; gap: 8px; align-items: center; background: rgba(6, 182, 212, 0.05); padding: 8px 12px; border-radius: var(--radius-sm); border: 1px solid rgba(6, 182, 212, 0.15);">
+              <span style="font-size: 11px; font-weight: 600; color: var(--color-accent-cyan);">⭐ Catálogo:</span>
+              <select id="catalog-select-product" class="form-input" style="flex: 1; padding: 4px 8px; font-size: var(--text-xs);" aria-label="Cargar Producto de Catálogo">
+                <option value="">Cargar Producto Guardado...</option>
+              </select>
+              <button class="btn btn-sm btn-secondary" id="btn-save-product-to-catalog" type="button">💾 Guardar en Catálogo</button>
+            </div>
+
+            <div class="hr-dual-mode">
+              <label class="hr-mode-opt selected" id="opt-product-img">
+                <input type="radio" name="hr_product_mode" value="image" checked> 🖼️ 1. Imagen Adjunta (HR-Producto)
+              </label>
+              <label class="hr-mode-opt" id="opt-product-txt">
+                <input type="radio" name="hr_product_mode" value="text"> 📝 2. Texto Descripción
+              </label>
+            </div>
+
+            <!-- Opción 1: Imagen Adjunta -->
+            <div id="box-product-image-field" class="form-group" style="margin-bottom: 12px;">
+              <label for="video-product-image-url" style="font-size: var(--text-xs); font-weight: 600; color: var(--text-secondary);">Identificador del Archivo / Imagen Adjunta (Orthographic Views):</label>
+              <div style="display: flex; gap: 8px;">
+                <input type="text" id="video-product-image-url" class="form-input" placeholder="HR-PRODUCTO-PROPERTY_OS.png">
+                <button class="btn btn-sm btn-secondary" id="btn-preview-product-img" type="button">👁️ Ver</button>
+              </div>
+              <div id="product-image-preview-box" class="hr-image-preview" style="margin-top: 8px; max-height: 120px; overflow: hidden; border-radius: 4px; border: 1px dashed var(--border-subtle); display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.2);">
+                <span style="font-size: 11px; color: var(--text-muted);">Orthographic Views Sheet (Front, Back, Left, Right, 3/4 Views & UI Modules)</span>
+              </div>
+            </div>
+
+            <!-- Opción 2: Texto Descripción -->
+            <div id="box-product-text-field" class="form-group" style="display: none;">
+              <label for="video-product-input" data-i18n="video_label_product_desc">Especificaciones del Producto & UI Tokens:</label>
+              <textarea id="video-product-input" class="form-input" rows="3" placeholder="[HR_PRODUCTO_PROPERTY_OS: Curved 4K ultrawide monitor displaying Property OS real estate CRM, emerald green (#10b981) and obsidian palette, Kanban pipeline, RAG AI chat window]"></textarea>
+            </div>
+          </div>
+
+          <!-- HR Sheet: HR-Escenario (2 Opciones: 1. Imagen Adjunta / 2. Texto) -->
+          <div class="hr-tab-content" id="hr-content-env">
+            <div class="catalog-quick-bar" style="margin-bottom: 12px; display: flex; gap: 8px; align-items: center; background: rgba(6, 182, 212, 0.05); padding: 8px 12px; border-radius: var(--radius-sm); border: 1px solid rgba(6, 182, 212, 0.15);">
+              <span style="font-size: 11px; font-weight: 600; color: var(--color-accent-cyan);">⭐ Catálogo:</span>
+              <select id="catalog-select-env" class="form-input" style="flex: 1; padding: 4px 8px; font-size: var(--text-xs);" aria-label="Cargar Escenario de Catálogo">
+                <option value="">Cargar Escenario Guardado...</option>
+              </select>
+              <button class="btn btn-sm btn-secondary" id="btn-save-env-to-catalog" type="button">💾 Guardar en Catálogo</button>
+            </div>
+
+            <div class="hr-dual-mode">
+              <label class="hr-mode-opt selected" id="opt-env-img">
+                <input type="radio" name="hr_env_mode" value="image" checked> 🖼️ 1. Imagen Adjunta (HR-Escenario)
+              </label>
+              <label class="hr-mode-opt" id="opt-env-txt">
+                <input type="radio" name="hr_env_mode" value="text"> 📝 2. Texto Descripción
+              </label>
+            </div>
+
+            <!-- Opción 1: Imagen Adjunta -->
+            <div id="box-env-image-field" class="form-group" style="margin-bottom: 12px;">
+              <label for="video-env-image-url" style="font-size: var(--text-xs); font-weight: 600; color: var(--text-secondary);">Identificador del Archivo / Imagen Adjunta (Location/Set Sheet):</label>
+              <input type="text" id="video-env-image-url" class="form-input" placeholder="HR-ESCENARIO-MODERN_STUDIO.png">
+            </div>
+
+            <!-- Opción 2: Texto Descripción -->
+            <div id="box-env-text-field" class="form-group" style="display: none;">
+              <label for="video-env-input" data-i18n="video_label_env_desc">HR-Escenario: Set, Iluminación & Atmósfera:</label>
+              <textarea id="video-env-input" class="form-input" rows="3" placeholder="[HR_ESCENARIO_MODERN_STUDIO: minimalist modern studio, dark gray gradient backdrop, solid executive desk, diffused 5600K key light, subtle cyan backlight rim, shallow depth of field f/1.8]"></textarea>
+            </div>
+          </div>
+
+          <!-- HR Sheet: Audio & SFX (Integrado en el Prompt Maestro) -->
+          <div class="hr-tab-content" id="hr-content-audio">
+            <div class="form-group" style="margin-bottom: 12px;">
+              <label for="video-audio-bgm" data-i18n="video_label_audio_bgm">Score / Música de Fondo (BPM & Mood):</label>
+              <input type="text" id="video-audio-bgm" class="form-input" placeholder="Upbeat Corporate Modern Electronic, 120 BPM, clean acoustic guitar pluck with warm synth pads, triumphant crescendo at CTA">
+            </div>
+            <div class="form-group">
+              <label for="video-audio-sfx">Estilo de Efectos Sonoros (SFX / Foley):</label>
+              <input type="text" id="video-audio-sfx" class="form-input" placeholder="Clicks de interfaz nítidos, whoosh de cámara suave, chime de lead calificado exitoso">
+            </div>
+          </div>
+
+          <div style="margin-top: 20px; display: flex; gap: 12px; flex-wrap: wrap;">
+            <button class="btn btn-primary" id="btn-generate-video" data-i18n="btn_generate_video">⚡ Generar Producción Completa (Flow / Veo 2)</button>
+          </div>
+        </div>
+
+        <!-- Output and Multi-Block Timeline Card -->
+        <div class="panel-card">
+          <div class="panel-title">
+            <span data-i18n="timeline_title">Desglose Temporal del Bloque Activo (Video + Audio)</span>
+            <span class="badge badge-glow">Multi-Track Synchronized</span>
+          </div>
+
+          <!-- Multi-Block Tab Navigation -->
+          <div class="block-tabs-bar" id="video-blocks-tabs">
+            <!-- Populated by JS -->
+          </div>
+
+          <!-- Timeline Visualizer for Active Block / All Blocks -->
+          <div class="video-timeline" id="video-timeline-display">
+            <!-- Rendered by JS -->
+          </div>
+
+          <div style="margin-top: 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
+              <span style="font-size: var(--text-sm); font-weight: 600; color: var(--text-secondary);">Prompt Maestro / Bloque Seleccionado (Audio Unificado):</span>
+              <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <button class="btn btn-sm btn-cyan" id="btn-copy-all-prompts" data-i18n="btn_copy_all_prompts">📑 Copiar Prompt Maestro Unificado (Flow)</button>
+                <button class="btn btn-sm btn-secondary" id="btn-copy-current-prompt" data-i18n="btn_copy_current_prompt">📋 Copiar Bloque Activo</button>
+              </div>
+            </div>
+            <textarea id="video-prompt-output" class="form-input video-textarea" readonly rows="7"></textarea>
+          </div>
+
+          <div style="margin-top: 14px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span style="font-size: var(--text-sm); font-weight: 600; color: var(--text-secondary);">Payload Estructurado (JSON Multi-Tenant & HR Sheets):</span>
+              <button class="btn btn-sm btn-secondary" id="btn-copy-json" data-i18n="btn_copy_json">💾 Copiar Payload JSON</button>
+            </div>
+            <pre class="json-viewer" id="video-json-output"></pre>
+          </div>
+
+          <!-- Professional Production & Timeline Exporters (Fase 3 PMV) -->
+          <div class="production-export-box" style="margin-top: 18px; padding: 14px 16px; background: rgba(6, 182, 212, 0.04); border: 1px solid rgba(6, 182, 212, 0.2); border-radius: var(--radius-sm);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span style="font-size: 16px;">📦</span>
+                <span style="font-size: var(--text-sm); font-weight: 700; color: var(--color-accent-cyan);">Exportador de Producción Multimodal (OTIO / FCPXML / CSV / JSON)</span>
+              </div>
+              <span class="badge badge-glow" style="font-size: 10px;">DaVinci Resolve & Google Flow Ready</span>
+            </div>
+            <p style="font-size: var(--text-xs); color: var(--text-secondary); margin-bottom: 12px; line-height: 1.45;">Descarga la secuencia completa con marcadores de tiempo de 10s, pistas de lip-sync, efectos sonoros (SFX) y directivas de extensión de video $N-1$ listas para software de edición y pipelines de IA.</p>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+              <button class="btn btn-sm btn-cyan" id="btn-export-otio">🎬 Descargar OpenTimelineIO (.otio)</button>
+              <button class="btn btn-sm btn-secondary" id="btn-export-fcpxml">🎞️ Descargar FCPXML (.fcpxml)</button>
+              <button class="btn btn-sm btn-secondary" id="btn-export-csv">📊 Descargar Planilla CSV (.csv)</button>
+              <button class="btn btn-sm btn-secondary" id="btn-export-md">📄 Descargar Guión Técnico (.md)</button>
+              <button class="btn btn-sm btn-secondary" id="btn-export-json">💾 Descargar Payload JSON (.json)</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Interactive User Manual Section -->
+    <section class="manual-section" id="manual">
+      <div class="section-header">
+        <span class="badge badge-cyan" data-i18n="manual_badge">Guía Didáctica</span>
+        <h2 class="section-title" data-i18n="manual_title">Manual de Uso Rápido para Pruebas Locales</h2>
+        <p class="section-desc" data-i18n="manual_desc">Aprende a operar el motor de bucles y cómo interactúan los 7 agentes.</p>
+      </div>
+
+      <div class="manual-grid">
+        <!-- Card 1 -->
+        <div class="manual-card">
+          <span class="manual-step-pill" data-i18n="manual_step_1_pill">Paso 01</span>
+          <h3 data-i18n="manual_step_1_title">Configurar Organización (Tenant)</h3>
+          <p data-i18n="manual_step_1_desc">Selecciona en el menú superior el Tenant Scope. Toda lectura, escritura y log quedará estrictamente aislada bajo esa organización.</p>
+        </div>
+
+        <!-- Card 2 -->
+        <div class="manual-card">
+          <span class="manual-step-pill" data-i18n="manual_step_2_pill">Paso 02</span>
+          <h3 data-i18n="manual_step_2_title">Ingresar la Especificación (Spec)</h3>
+          <p data-i18n="manual_step_2_desc">Escribe tu idea de producto o haz clic en cualquiera de estos ejemplos para probar de inmediato:</p>
+          <div class="example-snippet" data-spec-text="CRM para agencias con gestión de leads, autenticación multi-tenant y métricas en tiempo real">
+            <span>📌 CRM para Agencias con Leads y Métricas</span>
+            <span class="copy-badge">Clic para usar</span>
+          </div>
+          <div class="example-snippet" data-spec-text="SaaS de facturación electrónica con Stripe, PDFs automáticos y base de datos multi-tenant">
+            <span>📌 SaaS de Facturación y Pagos</span>
+            <span class="copy-badge">Clic para usar</span>
+          </div>
+          <div class="example-snippet" data-spec-text="API REST con FastAPI, base de datos vectorial y agente de búsqueda semántica">
+            <span>📌 API con Búsqueda Vectorial e IA</span>
+            <span class="copy-badge">Clic para usar</span>
+          </div>
+        </div>
+
+        <!-- Card 3 -->
+        <div class="manual-card">
+          <span class="manual-step-pill" data-i18n="manual_step_3_pill">Paso 03</span>
+          <h3 data-i18n="manual_step_3_title">Monitorear la Telemetría en Vivo</h3>
+          <p data-i18n="manual_step_3_desc">Al hacer clic en "Ejecutar", observa cómo el Investigador, Branding, Creativo, Web, App Developer y Auditor coordinan la entrega paso a paso.</p>
+        </div>
+
+        <!-- Card 4 -->
+        <div class="manual-card">
+          <span class="manual-step-pill" data-i18n="manual_step_4_pill">Paso 04</span>
+          <h3 data-i18n="manual_step_4_title">Auditoría con Auto-Healing</h3>
+          <p data-i18n="manual_step_4_desc">En la Fase 5, el auditor ejecuta pruebas automáticas y corrige en caliente cualquier discrepancia antes del visto bueno del Director.</p>
+        </div>
+
+        <!-- Card 5 -->
+        <div class="manual-card">
+          <span class="manual-step-pill" data-i18n="manual_step_5_pill">Paso 05</span>
+          <h3 data-i18n="manual_step_5_title">Video Prompt Studio (10s)</h3>
+          <p data-i18n="manual_step_5_desc">Crea prompts deterministas de 10s con anclaje de actor y entorno sin fluctuaciones de frames.</p>
+        </div>
+
+        <!-- Card 6 -->
+        <div class="manual-card">
+          <span class="manual-step-pill" data-i18n="manual_step_6_pill">Paso 06</span>
+          <h3 data-i18n="manual_step_6_title">Exportar a Antigravity IDE</h3>
+          <p data-i18n="manual_step_6_desc">Haz clic en "Exportar .agents/" para descargar la configuración completa e importarla a tu entorno de trabajo de Antigravity.</p>
+          <button class="btn btn-cyan btn-export-trigger" style="margin-top: 8px;">Descargar Blueprint .agents/</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- CRM & SaaS Telemetry Dashboard Section (Fase 4 PMV) -->
+    <section class="section" id="crm-section">
+      <div class="section-header">
+        <span class="badge badge-glow" data-i18n="crm_badge">SaaS Telemetry & Lead Pipeline</span>
+        <h2 class="section-title" data-i18n="crm_title">CRM de Leads & Métricas de Consumo Multi-Tenant</h2>
+        <p class="section-desc" data-i18n="crm_desc">Supervisa el embudo de ventas, calificación automática por IA y rendimiento de tokens de cada organización en tiempo real.</p>
+      </div>
+
+      <!-- KPI Metrics Cards Grid -->
+      <div class="crm-kpi-grid" id="crm-kpi-grid">
+        <div class="crm-kpi-card">
+          <div class="crm-kpi-header">
+            <span class="crm-kpi-label">Pipeline Total</span>
+            <span class="crm-kpi-icon">💰</span>
+          </div>
+          <div class="crm-kpi-value" id="kpi-pipeline-value">$3,576</div>
+          <div class="crm-kpi-sub" id="kpi-leads-count">3 Leads Activos</div>
+        </div>
+
+        <div class="crm-kpi-card">
+          <div class="crm-kpi-header">
+            <span class="crm-kpi-label">Ingresos Ganados</span>
+            <span class="crm-kpi-icon">🏆</span>
+          </div>
+          <div class="crm-kpi-value" id="kpi-won-revenue" style="color: var(--color-success);">$588</div>
+          <div class="crm-kpi-sub" id="kpi-conv-rate">33.3% Tasa de Conversión</div>
+        </div>
+
+        <div class="crm-kpi-card">
+          <div class="crm-kpi-header">
+            <span class="crm-kpi-label">Cómputo & Video</span>
+            <span class="crm-kpi-icon">🎬</span>
+          </div>
+          <div class="crm-kpi-value" id="kpi-video-seconds">120s</div>
+          <div class="crm-kpi-sub" id="kpi-compute-cost">Costo API Est.: $1.05 USD</div>
+        </div>
+
+        <div class="crm-kpi-card">
+          <div class="crm-kpi-header">
+            <span class="crm-kpi-label">Tiempo Ahorrado</span>
+            <span class="crm-kpi-icon">⚡</span>
+          </div>
+          <div class="crm-kpi-value" id="kpi-hours-saved" style="color: var(--color-accent-cyan);">10.0 hrs</div>
+          <div class="crm-kpi-sub" id="kpi-tokens-count">18,450 Tokens IA</div>
+        </div>
+      </div>
+
+      <!-- CRM Table Card -->
+      <div class="panel-card" style="margin-top: 24px;">
+        <div class="panel-title" style="margin-bottom: 16px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span>👥 Pipeline de Leads Calificados</span>
+            <span class="badge badge-cyan" id="crm-tenant-badge">Scope: nexus-01</span>
+          </div>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <button class="btn btn-sm btn-cyan" id="btn-open-lead-modal">➕ Registrar Lead</button>
+            <button class="btn btn-sm btn-secondary" id="btn-export-leads-csv">📊 Exportar Leads CSV</button>
+          </div>
+        </div>
+
+        <!-- Filters Bar -->
+        <div class="crm-filter-bar" style="display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap;">
+          <input type="text" id="crm-search-input" class="form-input" style="flex: 1; min-width: 200px; padding: 6px 12px; font-size: var(--text-xs);" placeholder="Buscar por nombre, email o empresa...">
+          <select id="crm-status-filter" class="form-input" style="width: 180px; padding: 6px 12px; font-size: var(--text-xs);" aria-label="Filtrar por Estado">
+            <option value="all">Todos los Estados</option>
+            <option value="new">Nuevos</option>
+            <option value="ai_qualified">Calificados por IA</option>
+            <option value="demo_scheduled">Demo Agendada</option>
+            <option value="won">Ganados</option>
+            <option value="lost">Perdidos</option>
+          </select>
+        </div>
+
+        <!-- Responsive Data Table -->
+        <div class="table-responsive" style="overflow-x: auto;">
+          <table class="crm-table" id="crm-leads-table">
+            <thead>
+              <tr>
+                <th>Contacto & Empresa</th>
+                <th>Plan de Interés</th>
+                <th>Valor Deal</th>
+                <th>Lead Score</th>
+                <th>Estado Embudo</th>
+                <th>Origen</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="crm-table-body">
+              <!-- Populated by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Modal for Adding New Lead -->
+    <div id="modal-add-lead" class="modal-backdrop" style="display: none;">
+      <div class="modal-card" style="max-width: 500px;">
+        <div class="modal-header">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 18px;">➕</span>
+            <h3 style="font-family: var(--font-display); font-size: var(--text-lg); margin: 0;">Nuevo Lead / Prospecto</h3>
+          </div>
+          <button id="btn-close-lead-modal" class="modal-close-btn" aria-label="Cerrar modal">&times;</button>
+        </div>
+        <form id="form-new-lead" style="padding: 20px;">
+          <div class="form-group" style="margin-bottom: 12px;">
+            <label for="lead-form-name" style="font-size: var(--text-xs); color: var(--text-secondary); margin-bottom: 4px; display: block;">Nombre Completo:</label>
+            <input type="text" id="lead-form-name" class="form-input" required placeholder="Ej: Roberto Gómez">
+          </div>
+          <div class="form-group" style="margin-bottom: 12px;">
+            <label for="lead-form-email" style="font-size: var(--text-xs); color: var(--text-secondary); margin-bottom: 4px; display: block;">Email Corporativo:</label>
+            <input type="email" id="lead-form-email" class="form-input" required placeholder="roberto@empresa.com">
+          </div>
+          <div class="form-group" style="margin-bottom: 12px;">
+            <label for="lead-form-company" style="font-size: var(--text-xs); color: var(--text-secondary); margin-bottom: 4px; display: block;">Empresa / Organización:</label>
+            <input type="text" id="lead-form-company" class="form-input" placeholder="Gómez & Asociados">
+          </div>
+          <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+            <div>
+              <label for="lead-form-plan" style="font-size: var(--text-xs); color: var(--text-secondary); margin-bottom: 4px; display: block;">Plan de Interés:</label>
+              <select id="lead-form-plan" class="form-input">
+                <option value="Hacker">Hacker ($0)</option>
+                <option value="Pro Squad" selected>Pro Squad ($49/mes)</option>
+                <option value="Enterprise">Enterprise ($200+/mes)</option>
+              </select>
+            </div>
+            <div>
+              <label for="lead-form-status" style="font-size: var(--text-xs); color: var(--text-secondary); margin-bottom: 4px; display: block;">Estado Inicial:</label>
+              <select id="lead-form-status" class="form-input">
+                <option value="new">Nuevo</option>
+                <option value="ai_qualified" selected>Calificado IA</option>
+                <option value="demo_scheduled">Demo Agendada</option>
+                <option value="won">Ganado</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group" style="margin-bottom: 16px;">
+            <label for="lead-form-notes" style="font-size: var(--text-xs); color: var(--text-secondary); margin-bottom: 4px; display: block;">Notas / Requerimientos:</label>
+            <textarea id="lead-form-notes" class="form-input" rows="2" placeholder="Requerimientos de automatización..."></textarea>
+          </div>
+          <div style="display: flex; justify-content: flex-end; gap: 8px;">
+            <button type="button" class="btn btn-secondary" id="btn-cancel-lead">Cancelar</button>
+            <button type="submit" class="btn btn-primary">Guardar Lead</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Core Features Grid -->
+    <section class="section" id="features">
+      <div class="section-header">
+        <span class="badge badge-glow">Core Capabilities</span>
+        <h2 class="section-title">Engineered for Hyper-Velocity and Strict Quality</h2>
+        <p class="section-desc">LoopGravity removes the cognitive overhead of managing manual prompts and configurations.</p>
+      </div>
+
+      <div class="grid-3">
+        <div class="feature-card">
+          <div class="feature-icon">🧩</div>
+          <h3>Antigravity-Native Scaffolding</h3>
+          <p>Auto-generates clean <code>.agents/skills</code>, <code>.agents/rules</code>, and verified MCP connectors tailored to your exact stack without manual YAML friction.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">🛡️</div>
+          <h3>Deterministic Quality Gates</h3>
+          <p>Built-in audit subagents enforce strict TypeScript types (<code>no-any</code>), prevent circular dependencies, and block SQL/auth vulnerabilities.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">🔄</div>
+          <h3>Self-Healing Closed Loops</h3>
+          <p>When tests fail or linters report issues, LoopGravity automatically routes diagnostic logs back to the specialist agent for instant auto-repair.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Squad Blueprints -->
+    <section class="section" id="blueprints">
+      <div class="section-header">
+        <span class="badge badge-cyan">Pre-built Blueprints</span>
+        <h2 class="section-title">Battle-Tested Agent Squad Topologies</h2>
+        <p class="section-desc">Deploy specialized teams tailored for your project domain in a single click.</p>
+      </div>
+
+      <div class="grid-3">
+        <div class="feature-card">
+          <div class="feature-icon">🚀</div>
+          <h3>Product Launch Squad</h3>
+          <p>Director, Market Researcher, Brand Strategist, Copywriter, Web Dev, Full-Stack App Dev and QA Auditor.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">🔒</div>
+          <h3>Security & Multi-Tenant Audit Squad</h3>
+          <p>Vulnerability scanner, Penetration testing agent, Policy enforcer, and Tenant Isolation validator.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">📱</div>
+          <h3>Mobile & Multiplatform Squad</h3>
+          <p>React Native/Flutter developer, UI Animation designer, Offline Sync architect, and Store compliance agent.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Pricing Section -->
+    <section class="section" id="pricing">
+      <div class="section-header">
+        <span class="badge badge-glow">Pricing</span>
+        <h2 class="section-title">Predictable Pricing for Autonomous Scale</h2>
+        <p class="section-desc">Start building for free, scale with specialized multi-agent squads.</p>
+      </div>
+
+      <div class="pricing-grid">
+        <div class="pricing-card">
+          <h3>Hacker</h3>
+          <p style="color: var(--text-secondary); font-size: var(--text-sm);">Para desarrolladores individuales y creadores independientes.</p>
+          <div class="price-val">$0</div>
+          <div class="price-sub">Free forever / Local runner</div>
+          <ul class="price-features">
+            <li>3 Concurrent Loops/mo</li>
+            <li>Standard Squad Blueprints</li>
+            <li>Local <code>.agents/</code> Export</li>
+            <li>Community Discord Support</li>
+          </ul>
+          <button class="btn btn-secondary">Get Started Free</button>
+        </div>
+
+        <div class="pricing-card popular">
+          <span class="badge badge-glow" style="position: absolute; top: 16px; right: 16px;">Most Popular</span>
+          <h3>Pro Squad</h3>
+          <p style="color: var(--text-secondary); font-size: var(--text-sm);">Para fundadores SaaS y equipos ágiles.</p>
+          <div class="price-val">$49</div>
+          <div class="price-sub">per month / billed annually</div>
+          <ul class="price-features">
+            <li>Unlimited Autonomous Loops</li>
+            <li>Custom MCP Server Generator</li>
+            <li>Automated E2E Audit Loops & Self-Healing</li>
+            <li>Priority Model Routing</li>
+          </ul>
+          <button class="btn btn-primary">Start Pro Trial</button>
+        </div>
+
+        <div class="pricing-card">
+          <h3>Enterprise</h3>
+          <p style="color: var(--text-secondary); font-size: var(--text-sm);">Para organizaciones que requieren gobernanza y SSO.</p>
+          <div class="price-val">Custom</div>
+          <div class="price-sub">Tailored deployment</div>
+          <ul class="price-features">
+            <li>Multi-Tenant Org Governance</li>
+            <li>Custom CI/CD Hook Runners</li>
+            <li>Dedicated Security Sandbox</li>
+            <li>Enterprise SLA & Dedicated Support</li>
+          </ul>
+          <button class="btn btn-secondary">Contact Sales</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Lead Capture Section -->
+    <section class="lead-section">
+      <span class="badge badge-cyan">Early Access</span>
+      <h2 style="font-family: var(--font-display); font-size: var(--text-3xl); margin: 12px 0;">
+        Ready to Eliminate Development Latency?
+      </h2>
+      <p style="color: var(--text-secondary); max-width: 600px; margin: 0 auto;">
+        Join hundreds of developers building production-grade software with autonomous loops in Google Antigravity.
+      </p>
+
+      <form class="lead-form" id="early-access-form">
+        <input 
+          type="email" 
+          id="lead-email" 
+          class="form-input" 
+          placeholder="developer@company.com" 
+          required 
+        />
+        <button type="submit" class="btn btn-primary">Join Early Access</button>
+      </form>
+    </section>
+
+  </main>
+
+  <footer class="main-footer">
+    <div class="app-container">
+      <p>© 2026 LoopGravity. Built for the Google Antigravity Ecosystem. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- Asset Catalog Modal -->
+  <div id="modal-asset-catalog" class="modal-backdrop" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 20px;">📚</span>
+          <div>
+            <h3 style="font-family: var(--font-display); font-size: var(--text-lg); margin: 0;">Biblioteca de Model Sheets & Assets</h3>
+            <span style="font-size: var(--text-xs); color: var(--text-secondary);" id="modal-tenant-label">Tenant: nexus-01</span>
+          </div>
+        </div>
+        <button id="btn-close-catalog-modal" class="modal-close-btn" aria-label="Cerrar modal">&times;</button>
+      </div>
+      <div class="modal-nav-tabs">
+        <button class="modal-tab-btn active" data-cat-tab="actors">👤 Actores & Voces</button>
+        <button class="modal-tab-btn" data-cat-tab="products">💎 Productos</button>
+        <button class="modal-tab-btn" data-cat-tab="environments">🏢 Escenarios & Sets</button>
+      </div>
+      <div class="modal-body" id="catalog-modal-items-container">
+        <!-- Populated dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
