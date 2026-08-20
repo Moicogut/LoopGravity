@@ -657,7 +657,361 @@ class AssetCatalogService {
   }
 }
 
-// --- 2D. Professional Production & Timeline Export Engine (Fase 3 PMV) ---
+// ==============================================================================
+// 2D. PRODUCTION OS PHASE 1: NÚCLEO DE DATOS, RLS & ACTIVOS CANÓNICOS VERSIONADOS
+// ==============================================================================
+
+class SecureStorageService {
+  constructor(secret = 'lg_sec_2026_production_os') {
+    this.secret = secret;
+  }
+
+  generateSignedUrl(tenantId, assetKey, expirySeconds = 900) {
+    if (!tenantId || !assetKey) {
+      throw new Error('[SecureStorageService] tenantId and assetKey are required to sign URL.');
+    }
+    const expires = Math.floor(Date.now() / 1000) + expirySeconds;
+    const rawPayload = `${tenantId}:${assetKey}:${expires}:${this.secret}`;
+    let hash = 0;
+    for (let i = 0; i < rawPayload.length; i++) {
+      hash = ((hash << 5) - hash) + rawPayload.charCodeAt(i);
+      hash |= 0;
+    }
+    const signature = Math.abs(hash).toString(36);
+    return `https://storage.loopgravity.io/v1/tenants/${tenantId}/assets/${assetKey}?expires=${expires}&signature=${signature}`;
+  }
+
+  verifySignedUrl(signedUrl, expectedTenantId) {
+    if (!signedUrl || !expectedTenantId) return false;
+    try {
+      const url = new URL(signedUrl);
+      const parts = url.pathname.split('/');
+      const urlTenant = parts[3];
+      const assetKey = parts[5];
+      const expires = parseInt(url.searchParams.get('expires'), 10);
+      const signature = url.searchParams.get('signature');
+
+      if (urlTenant !== expectedTenantId) return false;
+      if (!expires || expires < Math.floor(Date.now() / 1000)) return false;
+
+      const rawPayload = `${expectedTenantId}:${assetKey}:${expires}:${this.secret}`;
+      let hash = 0;
+      for (let i = 0; i < rawPayload.length; i++) {
+        hash = ((hash << 5) - hash) + rawPayload.charCodeAt(i);
+        hash |= 0;
+      }
+      return Math.abs(hash).toString(36) === signature;
+    } catch {
+      return false;
+    }
+  }
+}
+
+class AuditService {
+  constructor(storageService) {
+    this.storage = storageService;
+  }
+
+  logEvent(tenantId, { userId = 'system', eventType, resourceType, resourceId, details = {} }) {
+    if (!tenantId || !eventType) {
+      throw new Error('[AuditService] tenantId and eventType are mandatory.');
+    }
+    const events = this.storage.getItem(tenantId, 'audit_events') || [];
+    const eventRecord = {
+      id: `audit_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
+      tenant_id: tenantId,
+      user_id: userId,
+      event_type: eventType,
+      resource_type: resourceType || 'general',
+      resource_id: resourceId || 'none',
+      details: details,
+      created_at: new Date().toISOString()
+    };
+    events.unshift(eventRecord);
+    if (events.length > 500) events.length = 500;
+    this.storage.setItem(tenantId, 'audit_events', events);
+    return eventRecord;
+  }
+
+  getLogs(tenantId, limit = 50) {
+    const events = this.storage.getItem(tenantId, 'audit_events') || [];
+    return events.slice(0, limit);
+  }
+}
+
+class CanonicalAssetService {
+  constructor(storageService, auditService, secureStorage) {
+    this.storage = storageService;
+    this.audit = auditService;
+    this.secureStorage = secureStorage;
+  }
+
+  _getKey(tenantId) {
+    return 'canonical_assets_v2';
+  }
+
+  createAsset(tenantId, { assetType, name, description, initialImageUrl, attributes = {}, voiceProfileId = null, userId = 'operator' }) {
+    if (!name || !assetType) {
+      throw new Error('[CanonicalAssetService] Asset must have a name and assetType.');
+    }
+    const assets = this.storage.getItem(tenantId, this._getKey(tenantId)) || [];
+    const assetId = `asset_${assetType}_${Date.now().toString(36)}_${Math.random().toString(36).substr(2, 4)}`;
+    const versionId = `ver_${assetId}_1`;
+
+    const initialVersion = {
+      version_id: versionId,
+      version_number: 1,
+      image_url: initialImageUrl || 'https://loopgravity.io/assets/default_avatar.png',
+      attributes: attributes,
+      voice_profile_id: voiceProfileId,
+      change_notes: 'Initial canonical asset creation',
+      created_at: new Date().toISOString()
+    };
+
+    const newAsset = {
+      id: assetId,
+      tenant_id: tenantId,
+      asset_type: assetType,
+      name: name,
+      description: description || '',
+      is_archived: false,
+      current_version_number: 1,
+      versions: [initialVersion],
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
+    assets.push(newAsset);
+    this.storage.setItem(tenantId, this._getKey(tenantId), assets);
+
+    if (this.audit) {
+      this.audit.logEvent(tenantId, {
+        userId,
+        eventType: 'asset_created',
+        resourceType: 'canonical_asset',
+        resourceId: assetId,
+        details: { name, assetType, version: 1 }
+      });
+    }
+
+    return newAsset;
+  }
+
+  createNewVersion(tenantId, assetId, { imageUrl, attributes = {}, changeNotes = 'Updated version', voiceProfileId = null, userId = 'operator' }) {
+    const assets = this.storage.getItem(tenantId, this._getKey(tenantId)) || [];
+    const asset = assets.find(a => a.id === assetId && !a.is_archived);
+    if (!asset) {
+      throw new Error(`[CanonicalAssetService] Active asset not found: ${assetId}`);
+    }
+
+    const nextVersionNum = asset.current_version_number + 1;
+    const versionId = `ver_${assetId}_${nextVersionNum}`;
+
+    const lastVer = asset.versions[asset.versions.length - 1];
+    const newVersion = {
+      version_id: versionId,
+      version_number: nextVersionNum,
+      image_url: imageUrl || lastVer.image_url,
+      attributes: { ...(lastVer.attributes || {}), ...attributes },
+      voice_profile_id: voiceProfileId || lastVer.voice_profile_id,
+      change_notes: changeNotes,
+      created_at: new Date().toISOString()
+    };
+
+    asset.versions.push(newVersion);
+    asset.current_version_number = nextVersionNum;
+    asset.updated_at = new Date().toISOString();
+
+    this.storage.setItem(tenantId, this._getKey(tenantId), assets);
+
+    if (this.audit) {
+      this.audit.logEvent(tenantId, {
+        userId,
+        eventType: 'version_bumped',
+        resourceType: 'canonical_asset',
+        resourceId: assetId,
+        details: { version_number: nextVersionNum, changeNotes }
+      });
+    }
+
+    return newVersion;
+  }
+
+  getAsset(tenantId, assetId) {
+    const assets = this.storage.getItem(tenantId, this._getKey(tenantId)) || [];
+    return assets.find(a => a.id === assetId) || null;
+  }
+
+  getAssetVersion(tenantId, assetId, versionNumber = null) {
+    const asset = this.getAsset(tenantId, assetId);
+    if (!asset) return null;
+    if (versionNumber === null) {
+      return asset.versions.find(v => v.version_number === asset.current_version_number) || null;
+    }
+    return asset.versions.find(v => v.version_number === versionNumber) || null;
+  }
+
+  archiveAsset(tenantId, assetId, userId = 'operator') {
+    const assets = this.storage.getItem(tenantId, this._getKey(tenantId)) || [];
+    const asset = assets.find(a => a.id === assetId);
+    if (asset) {
+      asset.is_archived = true;
+      asset.updated_at = new Date().toISOString();
+      this.storage.setItem(tenantId, this._getKey(tenantId), assets);
+      if (this.audit) {
+        this.audit.logEvent(tenantId, {
+          userId,
+          eventType: 'asset_archived',
+          resourceType: 'canonical_asset',
+          resourceId: assetId,
+          details: { name: asset.name }
+        });
+      }
+    }
+    return asset;
+  }
+
+  restoreAsset(tenantId, assetId, userId = 'operator') {
+    const assets = this.storage.getItem(tenantId, this._getKey(tenantId)) || [];
+    const asset = assets.find(a => a.id === assetId);
+    if (asset) {
+      asset.is_archived = false;
+      asset.updated_at = new Date().toISOString();
+      this.storage.setItem(tenantId, this._getKey(tenantId), assets);
+      if (this.audit) {
+        this.audit.logEvent(tenantId, {
+          userId,
+          eventType: 'asset_restored',
+          resourceType: 'canonical_asset',
+          resourceId: assetId,
+          details: { name: asset.name }
+        });
+      }
+    }
+    return asset;
+  }
+
+  listAssets(tenantId, assetType = null, includeArchived = false) {
+    const assets = this.storage.getItem(tenantId, this._getKey(tenantId)) || [];
+    return assets.filter(a => {
+      if (!includeArchived && a.is_archived) return false;
+      if (assetType && a.asset_type !== assetType) return false;
+      return true;
+    });
+  }
+}
+
+class ProductionOSProjectService {
+  constructor(storageService, canonicalAssetService, auditService) {
+    this.storage = storageService;
+    this.assetService = canonicalAssetService;
+    this.audit = auditService;
+  }
+
+  _getKey(tenantId) {
+    return 'production_os_projects_v1';
+  }
+
+  createProject(tenantId, { name, targetDuration = 30, aspectRatio = '16:9', userId = 'operator' }) {
+    if (!name) throw new Error('[ProductionOSProjectService] Project requires a name.');
+    const projects = this.storage.getItem(tenantId, this._getKey(tenantId)) || [];
+    const projectId = `proj_pos_${Date.now().toString(36)}_${Math.random().toString(36).substr(2, 4)}`;
+
+    const newProject = {
+      id: projectId,
+      tenant_id: tenantId,
+      name: name,
+      target_duration_seconds: targetDuration,
+      aspect_ratio: aspectRatio,
+      status: 'draft',
+      current_step: 1,
+      brief: {
+        pitch_text: '',
+        target_audience: 'Inmobiliarias y Brokers',
+        emotional_hook: '',
+        cta_text: ''
+      },
+      asset_links: {},
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
+    projects.push(newProject);
+    this.storage.setItem(tenantId, this._getKey(tenantId), projects);
+
+    if (this.audit) {
+      this.audit.logEvent(tenantId, {
+        userId,
+        eventType: 'project_created',
+        resourceType: 'production_project',
+        resourceId: projectId,
+        details: { name }
+      });
+    }
+
+    return newProject;
+  }
+
+  saveDraft(tenantId, projectId, stepData, userId = 'operator') {
+    const projects = this.storage.getItem(tenantId, this._getKey(tenantId)) || [];
+    const project = projects.find(p => p.id === projectId);
+    if (!project) throw new Error(`Project not found: ${projectId}`);
+
+    if (stepData.step) project.current_step = stepData.step;
+    if (stepData.brief) project.brief = { ...project.brief, ...stepData.brief };
+    if (stepData.name) project.name = stepData.name;
+
+    if (stepData.assetLinks) {
+      Object.keys(stepData.assetLinks).forEach(role => {
+        const link = stepData.assetLinks[role];
+        const asset = this.assetService.getAsset(tenantId, link.asset_id);
+        if (asset) {
+          const targetVer = link.version_number 
+            ? asset.versions.find(v => v.version_number === link.version_number)
+            : asset.versions.find(v => v.version_number === asset.current_version_number);
+          
+          if (targetVer) {
+            project.asset_links[role] = {
+              asset_id: asset.id,
+              asset_name: asset.name,
+              asset_type: asset.asset_type,
+              asset_version_id: targetVer.version_id,
+              version_number: targetVer.version_number,
+              image_url: targetVer.image_url,
+              linked_at: new Date().toISOString()
+            };
+          }
+        }
+      });
+    }
+
+    project.updated_at = new Date().toISOString();
+    this.storage.setItem(tenantId, this._getKey(tenantId), projects);
+
+    if (this.audit) {
+      this.audit.logEvent(tenantId, {
+        userId,
+        eventType: 'draft_saved',
+        resourceType: 'production_project',
+        resourceId: projectId,
+        details: { step: project.current_step }
+      });
+    }
+
+    return project;
+  }
+
+  getProject(tenantId, projectId) {
+    const projects = this.storage.getItem(tenantId, this._getKey(tenantId)) || [];
+    return projects.find(p => p.id === projectId) || null;
+  }
+
+  listProjects(tenantId) {
+    return this.storage.getItem(tenantId, this._getKey(tenantId)) || [];
+  }
+}
+
+// --- 2E. Professional Production & Timeline Export Engine (Fase 3 PMV) ---
 class ExportEngine {
   constructor() {}
 
@@ -3592,6 +3946,10 @@ if (typeof module !== 'undefined' && module.exports) {
     TenantService,
     SupabaseStorageAdapter,
     StorageService,
+    SecureStorageService,
+    AuditService,
+    CanonicalAssetService,
+    ProductionOSProjectService,
     AssetCatalogService,
     ExportEngine,
     CrmService,

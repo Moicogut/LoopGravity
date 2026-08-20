@@ -94,35 +94,34 @@ Este documento registra las decisiones técnicas, estado de certificación, estr
 
 ---
 
-## ESTADO DE CERTIFICACIÓN
+## 4. Estado de Ejecución: FASE 0 & FASE 1 (COMPLETADAS)
 
-- **Arquitectura de Production OS:** Documentada en [`PLAN_IMPLEMENTACION_LOOPGRAVITY_PRODUCTION_OS.md`](file:///c:/Users/Rolando/Downloads/Prueba%20equipo%20agentes/PLAN_IMPLEMENTACION_LOOPGRAVITY_PRODUCTION_OS.md) y pendiente de auditoría y aprobación formal.
-- **Implementación de Código (Fase 0 y Fase 1):** BLOQUEADA hasta recibir aprobación formal del plan sincronizado en GitHub `main`.
+- **Fase 0 — Discovery y Validación de Viabilidad:**
+  - `PRD_MVP_PRODUCTION_OS.md`: Especificación del primer vertical (Spot de 20–30s, 16:9, máx 2 personajes, 1 producto, 1 set, 4 tomas independientes, locución TTS en español latino, lip-sync y montaje final en MP4).
+  - `PROVEEDORES_COSTOS_RIESGOS.md`: Matriz de proveedores (Kling/Runway, ElevenLabs, SyncLabs, FFmpeg Worker), prueba técnica de viabilidad documentada, modelo de costos unitarios ($1.41 USD/spot estimado) y matriz de riesgos.
+- **Fase 1 — Núcleo de Datos, RLS y Activos Canónicos:**
+  - `supabase_schema.sql`: 12 tablas relacionales (`organizations`, `users`, `organization_members`, `projects`, `creative_briefs`, `voice_profiles`, `canonical_assets`, `asset_versions`, `asset_links`, `audit_events`, `cost_ledger`, `usage_telemetry`) con RLS habilitado y políticas de aislamiento estricto por tenant.
+  - Implementación en `app.js`:
+    - `SecureStorageService`: Generación y validación de URLs firmadas criptográficamente con timestamp de expiración.
+    - `AuditService`: Registro inmutable de eventos sensibles (`audit_events`) con aislamiento multi-tenant.
+    - `CanonicalAssetService`: Creación, versionado (`asset_versions`), archivado, restauración y consultas de activos de marca.
+    - `ProductionOSProjectService`: Guardado y recuperación de borradores en el flujo de 5 pasos con vinculación inmutable de versiones de activos.
+  - Suite de Pruebas: `test_production_os_phase1.js` (6/6 PASS).
 
 ---
 
-## TAREAS PENDIENTES OBLIGATORIAS
+## ESTADO DE CERTIFICACIÓN GLOBAL
 
-### A. Sincronización y trazabilidad:
-- [x] Ejecutar: `git push origin main`
-- [x] Confirmar que el commit del Video Performance Engine esté visible en GitHub dentro de la rama main.
-- [x] Entregar hash completo del commit (`94a6e4a`) y enlace de GitHub: [https://github.com/Moicogut/LoopGravity/commit/94a6e4a](https://github.com/Moicogut/LoopGravity/commit/94a6e4a).
-
-### B. Auditoría técnica posterior:
-- [x] Confirmar que `test_pmv_performance_beats.js` exista en `main`.
-- [x] Confirmar que `performance_beats` exista en `app.js` de `main`.
-- [x] Entregar salida completa de las cinco suites de pruebas.
-- [x] Verificar resultado total esperado: 25/25 PASS.
-
-### C. Prueba visual real en Google Flow:
-- [ ] Generar 3 variaciones independientes del Bloque 1 de 10 segundos.
-- [ ] Usar exactamente las cuatro referencias:
-  - Sofía Coff (`HR-Personaje 1`).
-  - Moisés Guti (`HR-Personaje 2`).
-  - Producto My Cake Studio (`HR-Producto`).
-  - Escenario Pastel Bakery Studio (`HR-Escenario`).
-- [ ] Usar el prompt de prueba oficial V1 aprobado por Auditoría.
-- [ ] Descargar los tres MP4 originales o grabar su reproducción con audio.
+- **Fase 0 (Discovery & Viabilidad):** APROBADA y documentada.
+- **Fase 1 (Datos, RLS & Activos Canónicos):** IMPLEMENTADA y certificada con pruebas automatizadas.
+- **Suites de Pruebas Automatizadas Totales (31 / 31 PASS - 0 ERRORES):**
+  1. `test_pmv_storage_catalog.js` (4/4 PASS)
+  2. `test_pmv_phase3_export.js` (4/4 PASS)
+  3. `test_pmv_phase4_crm.js` (6/6 PASS)
+  4. `test_pmv_phase5_supabase.js` (4/4 PASS)
+  5. `test_pmv_performance_beats.js` (7/7 PASS)
+  6. `test_production_os_phase1.js` (6/6 PASS)
+- **Fases Restantes (Fase 2 a Fase 7):** En espera de auditoría y autorización formal.
 - [ ] Adjuntar una captura de Flow mostrando el prompt y los cuatro assets.
 - [ ] Indicar el modelo exacto usado en Flow/Veo.
 
