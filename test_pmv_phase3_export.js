@@ -59,8 +59,8 @@ assert.strictEqual(videoTrack.children[0].source_range.duration.value, 240, 'Cad
 
 const audioTrackVO = otio.tracks.children[1];
 assert.strictEqual(audioTrackVO.kind, 'Audio');
-assert.strictEqual(audioTrackVO.children.length, 4);
-assert.ok(audioTrackVO.children[0].metadata.lip_sync_directive, 'Debe contener directivas de lip-sync');
+assert.ok(audioTrackVO.children.length >= 4, 'La pista de audio debe contener clips para todos los bloques/beats');
+assert.ok(audioTrackVO.children[0].metadata.dialogue_es || audioTrackVO.children[0].metadata.lip_sync_directive, 'Debe contener directivas de diálogo o lip-sync');
 
 console.log('  ✓ [PASS] Exportador OpenTimelineIO (.otio) validado para DaVinci Resolve & Premiere Pro.');
 

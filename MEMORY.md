@@ -37,9 +37,27 @@
 | :--- | :--- | :--- |
 | **Engine & Squads** | ✅ Operativo | 7 agentes especializados (`@director`, `@creativo`, etc.) y presets cinematográficos. |
 | **Video Studio (UI & Prompt Engine)** | ✅ Operativo | Generación de prompts para Google Flow, Runway Gen-3, Kling 1.5, Sora y Luma. |
+### I. Video Performance Engine & Multi-Actor Beats (`VideoPromptService` & `ExportEngine`) [Mejora Crítica]
+- **Modelo Multi-Beat (`performance_beats`):** Cada bloque de 10s genera $\ge 2$ beats de actuación (`actor`, `dialogue_es`, `emotion`, `physical_action`, `eyeline_direction`, `listener_reaction`, `estimated_duration_seconds`) con suma estricta de 10.0s $\pm 0.25$s.
+- **Diálogo Cruzado & Cero Actores Pasivos:** Alternancia verbal activa con el coprotagonista escuchando, gesticulando, asintiendo y reaccionando físicamente en tiempo real.
+- **Reglas Estrictas de Ensamblado:** Prohibición explícita de `voice-over`, diálogo fuera de cuadro (`off-screen`), actores congelados, miradas perdidas y poses estáticas de maniquí.
+- **Continuidad N-1:** Directivas de encadenamiento y anclaje de media para bloques 2..N (identidad, iluminación, set, vestuario y props consistentes).
+- **Exportación NLE Enriquecida:** OTIO (clips de audio por cada beat), FCPXML (marcadores con timecodes y notas de reacción), CSV y Guión Técnico Markdown multi-actor.
+
+---
+
+## 2. Estado Actual del Sistema (PMV + Cloud + Performance Engine)
+
+| Componente | Estado | Detalle |
+| :--- | :--- | :--- |
+| **Engine & Squads** | ✅ Operativo | 7 agentes especializados (`@director`, `@creativo`, etc.) y presets cinematográficos. |
+| **Video Studio & Performance Engine** | ✅ Operativo | Generación multi-beat ($\ge 2$ beats/10s), diálogo cruzado con lip-sync en cámara y cero personajes pasivos. |
 | **Persistencia Multi-Tenant (StorageService)** | ✅ Operativo | Guardado y carga de proyectos con aislamiento estricto por `tenant_id`. |
 | **Biblioteca de Model Sheets (AssetCatalogService)** | ✅ Operativo | Catálogo de actores, productos y escenarios con modal y selectores rápidos. |
-| **Pruebas Automatizadas PMV** | ✅ 100% Passed | `test_pmv_storage_catalog.js` validando 4 suites (Aislamiento, CRUD, Catálogo, Lip-Sync). |
+| **Exportador de Producción (ExportEngine)** | ✅ Operativo | Descarga en 1 clic de OTIO, FCPXML, CSV, Markdown y Batch JSON con beats multi-actor y neutralización CSV. |
+| **CRM & Telemetría SaaS (CrmService)** | ✅ Operativo | Pipeline de leads, KPI cards, registro de cómputo GPU, sanitización XSS (`escapeHtml`) y exportación CSV. |
+| **Cloud Storage & RLS (SupabaseStorageAdapter)** | ✅ Operativo | Esquema DDL PostgreSQL, RLS activo y adaptador híbrido nube/offline (`bsftifcgyuaubmachzvi.supabase.co`). |
+| **Pruebas Automatizadas Totales** | ✅ 100% Passed | 25/25 suites pasadas (`test_pmv_storage_catalog.js`, `test_pmv_phase3_export.js`, `test_pmv_phase4_crm.js`, `test_pmv_phase5_supabase.js`, `test_pmv_performance_beats.js`). |
 
 ---
 

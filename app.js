@@ -669,6 +669,48 @@ class ExportEngine {
     const fps = 24;
     const totalDurationSeconds = (payload && payload.total_duration_seconds) || (sequenceBlocks.length * 10);
 
+    const audioClips = [];
+    sequenceBlocks.forEach((b) => {
+      if (b.performance_beats && b.performance_beats.length > 0) {
+        b.performance_beats.forEach((beat) => {
+          const beatDurationFrames = Math.round((beat.estimated_duration_seconds || 5.0) * fps);
+          const startFrame = beat.beat_index === 1 ? 0 : Math.round(5.0 * fps);
+          audioClips.push({
+            OTIO_SCHEMA: 'Clip.1',
+            name: `VO_${(beat.actor || 'Actor').replace(/\s+/g, '_')}_Beat${beat.beat_index}_Block_${b.block_index}`,
+            source_range: {
+              OTIO_SCHEMA: 'TimeRange.1',
+              start_time: { OTIO_SCHEMA: 'RationalTime.1', rate: fps, value: startFrame },
+              duration: { OTIO_SCHEMA: 'RationalTime.1', rate: fps, value: beatDurationFrames }
+            },
+            metadata: {
+              actor: beat.actor,
+              dialogue_es: beat.dialogue_es,
+              emotion: beat.emotion,
+              listener_reaction: beat.listener_reaction,
+              eyeline: beat.eyeline_direction,
+              lip_sync_directive: b.lip_sync_directive
+            }
+          });
+        });
+      } else {
+        audioClips.push({
+          OTIO_SCHEMA: 'Clip.1',
+          name: `VO_${(b.speaker || 'Actor').replace(/\s+/g, '_')}_Block_${b.block_index}`,
+          source_range: {
+            OTIO_SCHEMA: 'TimeRange.1',
+            start_time: { OTIO_SCHEMA: 'RationalTime.1', rate: fps, value: 0 },
+            duration: { OTIO_SCHEMA: 'RationalTime.1', rate: fps, value: 10 * fps }
+          },
+          metadata: {
+            speaker: b.speaker,
+            dialogue_es: b.dialogue_es,
+            lip_sync_directive: b.lip_sync_directive
+          }
+        });
+      }
+    });
+
     const otio = {
       OTIO_SCHEMA: 'Timeline.1',
       metadata: {
@@ -677,7 +719,8 @@ class ExportEngine {
           engine: payload ? payload.engine_target : 'google-flow',
           aspectRatio: payload ? payload.aspect_ratio : '16:9',
           projectName,
-          totalDurationSeconds
+          totalDurationSeconds,
+          multiActorPerformanceBeats: true
         }
       },
       name: projectName,
@@ -696,7 +739,7 @@ class ExportEngine {
             kind: 'Video',
             children: sequenceBlocks.map((b) => ({
               OTIO_SCHEMA: 'Clip.1',
-              name: `Block_${b.block_index}_(${b.time_range_global})_${(b.act_title_es || 'Act').replace(/\\s+/g, '_')}`,
+              name: `Block_${b.block_index}_(${b.time_range_global})_${(b.act_title_es || 'Act').replace(/\s+/g, '_')}`,
               source_range: {
                 OTIO_SCHEMA: 'TimeRange.1',
                 start_time: { OTIO_SCHEMA: 'RationalTime.1', rate: fps, value: 0 },
@@ -707,29 +750,17 @@ class ExportEngine {
                 shot_type: b.shot_type,
                 camera: b.camera_motion,
                 seed: b.seed,
-                media_directive: b.attached_media_directive
+                media_directive: b.attached_media_directive,
+                performance_beats: b.performance_beats || []
               }
             }))
           },
-          // Track 2: Dialogue & Lip-Sync Audio
+          // Track 2: Dialogue & Performance Beats Audio
           {
             OTIO_SCHEMA: 'Track.1',
-            name: 'Audio Track - Lip-Sync Dialogue',
+            name: 'Audio Track - Lip-Sync Dialogue & Performance Beats',
             kind: 'Audio',
-            children: sequenceBlocks.map((b) => ({
-              OTIO_SCHEMA: 'Clip.1',
-              name: `VO_${(b.speaker || 'Actor').replace(/\\s+/g, '_')}_Block_${b.block_index}`,
-              source_range: {
-                OTIO_SCHEMA: 'TimeRange.1',
-                start_time: { OTIO_SCHEMA: 'RationalTime.1', rate: fps, value: 0 },
-                duration: { OTIO_SCHEMA: 'RationalTime.1', rate: fps, value: 10 * fps }
-              },
-              metadata: {
-                speaker: b.speaker,
-                dialogue_es: b.dialogue_es,
-                lip_sync_directive: b.lip_sync_directive
-              }
-            }))
+            children: audioClips
           },
           // Track 3: Foley & SFX
           {
@@ -781,6 +812,15 @@ class ExportEngine {
       const cleanDialogue = (b.dialogue_es || '').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
       xml += `            <gap name="Block_${b.block_index}" offset="${idx * 240}/24s" duration="240/24s" start="0s">\n`;
       xml += `              <marker start="0s" duration="240/24s" value="[${b.shot_type}] ${b.speaker}: ${cleanDialogue}" note="${cleanPrompt}" />\n`;
+      if (b.performance_beats && b.performance_beats.length > 0) {
+        b.performance_beats.forEach((beat) => {
+          const beatOffset = beat.beat_index === 1 ? '0s' : '120/24s';
+          const beatDur = `${Math.round((beat.estimated_duration_seconds || 5.0) * 24)}/24s`;
+          const cleanBeatDia = (beat.dialogue_es || '').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+          const cleanBeatReact = (beat.listener_reaction || '').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+          xml += `              <marker start="${beatOffset}" duration="${beatDur}" value="Beat ${beat.beat_index} - ${beat.actor} (${beat.emotion}): ${cleanBeatDia}" note="Listener Reaction: ${cleanBeatReact}" />\n`;
+        });
+      }
       xml += `            </gap>\n`;
     });
 
@@ -802,8 +842,13 @@ class ExportEngine {
       'Block Index',
       'Time Range Global',
       'Act Title',
-      'Speaker',
+      'Speaker Summary',
       'Lip-Sync Dialogue (ES)',
+      'Performance Beats (Multi-Actor)',
+      'Emotions Summary',
+      'Physical Actions',
+      'Eyeline Direction',
+      'Listener Reactions',
       'Shot Type',
       'Camera Motion',
       'Subject Action',
@@ -825,12 +870,37 @@ class ExportEngine {
 
     const rows = [headers.join(',')];
     sequenceBlocks.forEach(b => {
+      const beatsFormatted = (b.performance_beats || []).map(beat => 
+        `[Beat ${beat.beat_index} (${beat.estimated_duration_seconds}s) - ${beat.actor}]: "${beat.dialogue_es}"`
+      ).join(' | ');
+
+      const emotionsFormatted = (b.performance_beats || []).map(beat => 
+        `[${beat.actor}]: ${beat.emotion}`
+      ).join(' | ');
+
+      const actionsFormatted = (b.performance_beats || []).map(beat => 
+        `[${beat.actor}]: ${beat.physical_action}`
+      ).join(' | ');
+
+      const eyelinesFormatted = (b.performance_beats || []).map(beat => 
+        `[${beat.actor}]: ${beat.eyeline_direction}`
+      ).join(' | ');
+
+      const reactionsFormatted = (b.performance_beats || []).map(beat => 
+        `[Reaction to ${beat.actor}]: ${beat.listener_reaction}`
+      ).join(' | ');
+
       rows.push([
         escapeCsv(b.block_index),
         escapeCsv(b.time_range_global),
         escapeCsv(b.act_title_es),
         escapeCsv(b.speaker),
         escapeCsv(b.dialogue_es),
+        escapeCsv(beatsFormatted || b.dialogue_es),
+        escapeCsv(emotionsFormatted || 'Natural'),
+        escapeCsv(actionsFormatted || b.subject_action),
+        escapeCsv(eyelinesFormatted || 'Direct to camera'),
+        escapeCsv(reactionsFormatted || 'Active listening'),
         escapeCsv(b.shot_type),
         escapeCsv(b.camera_motion),
         escapeCsv(b.subject_action),
@@ -854,7 +924,8 @@ class ExportEngine {
     md += `* **Motor Objetivo:** \`${payload ? payload.engine_target : 'google-flow'}\`\n`;
     md += `* **Duración Total:** **${payload ? payload.total_duration_seconds : sequenceBlocks.length * 10}s** (${payload ? payload.total_blocks : sequenceBlocks.length} Bloques de 10s)\n`;
     md += `* **Aspect Ratio:** \`${payload ? payload.aspect_ratio : '16:9'}\`\n`;
-    md += `* **Generado por:** LoopGravity Video Studio Engine\n\n`;
+    md += `* **Modo de Actuación:** \`Alternating Dialogue & Multi-Beat Interaction (Sin personajes pasivos)\`\n`;
+    md += `* **Generado por:** LoopGravity Video Performance Engine\n\n`;
     md += `---\n\n`;
     md += `## 🎬 Desglose por Bloques Continuos (10s)\n\n`;
 
@@ -862,12 +933,26 @@ class ExportEngine {
       md += `### ⏱️ Bloque ${b.block_index} (${b.time_range_global}): ${b.act_title_es}\n\n`;
       md += `- **Toma & Cámara:** \`${b.shot_type}\` — ${b.camera_motion}\n`;
       md += `- **Acción en Cuadro:** ${b.subject_action}\n`;
-      md += `- **👄 Diálogo & Lip-Sync (${b.speaker}):** *"${b.dialogue_es}"*\n`;
+      md += `- **👄 Diálogo & Lip-Sync (Resumen):** *"${b.dialogue_es}"*\n`;
       md += `- **🎭 Directiva Lip-Sync:** \`${b.lip_sync_directive}\`\n`;
       md += `- **🔊 Efectos SFX / Foley:** \`${b.sfx_foley}\`\n`;
       if (b.attached_media_directive) {
         md += `- **📎 Ingesta Google Flow:** \`${b.attached_media_directive}\`\n`;
       }
+      
+      if (b.performance_beats && b.performance_beats.length > 0) {
+        md += `\n#### 🎭 Desglose de Performance Beats (Multi-Actor):\n`;
+        b.performance_beats.forEach(beat => {
+          const beatTime = beat.beat_index === 1 ? '0.0s - 5.0s' : '5.0s - 10.0s';
+          md += `* **Beat ${beat.beat_index} (${beatTime}, ${beat.estimated_duration_seconds}s) — ${beat.actor}:**\n`;
+          md += `  - **Emoción:** ${beat.emotion}\n`;
+          md += `  - **Diálogo (ES):** *"${beat.dialogue_es}"*\n`;
+          md += `  - **Acción Física:** ${beat.physical_action}\n`;
+          md += `  - **Dirección de Mirada:** ${beat.eyeline_direction}\n`;
+          md += `  - **Reacción del Coprotagonista:** ${beat.listener_reaction}\n`;
+        });
+      }
+
       md += `\n**Prompt Ensamblado:**\n\`\`\`text\n${b.assembled_prompt}\n\`\`\`\n\n`;
     });
 
@@ -1772,21 +1857,17 @@ class VideoPromptService {
         : `[Continuity Extension: Extends ending frame & camera vector of Block ${blockNum - 1}. Identical facial geometry, clothing, lighting, and placement of ${actorRefTag}${actor2RefTag ? ' and ' + actor2RefTag : ''} inside ${envRefTag}].`;
 
       const chunkT1 = `${act.promptSegment} (0-3s: [Shot: ${act.shotType}] ${act.cameraMotion})`;
-      const chunkT2 = `Core progression & Lip-Sync Action: ${act.subjectAction} (3-7s)`;
+      const chunkT2 = `Core progression & Multi-Actor Interaction: ${act.subjectAction} (3-7s)`;
       const chunkT3 = blockNum === blockCount
         ? `Hero resolution, brand lockup and high-impact CTA framing with final smile (7-10s)`
         : `Seamless camera motion transition preparing extension into Block ${blockNum + 1} (7-10s)`;
 
-      // Determine active speaker and voice profile
+      // Determine active speaker summary
       let activeSpeaker = actorName;
       let activeVoice = voiceProfile;
       let activeLipDirective = act.lipSyncDirective || 'Direct on-camera speech with natural mouth visemes and synchronized lips.';
 
-      const spkRaw = act.speaker || '';
-      if (charCount >= 2 && (spkRaw.includes('2') || spkRaw.includes('Moisés') || spkRaw.includes('Co-') || spkRaw.includes('Architect') || spkRaw.includes('Tech'))) {
-        activeSpeaker = actor2Name;
-        activeVoice = voiceProfile2 || voiceProfile;
-      } else if (charCount >= 2 && (spkRaw.includes('Dúo') || spkRaw.includes('Ambos') || spkRaw.includes('&') || spkRaw.includes('Both'))) {
+      if (charCount >= 2) {
         activeSpeaker = `${actorName} & ${actor2Name}`;
         activeVoice = `${actorName} (${voiceProfile}) | ${actor2Name} (${voiceProfile2 || voiceProfile})`;
       } else {
@@ -1796,6 +1877,9 @@ class VideoPromptService {
 
       let dynamicSubjectAction = replaceTokensAndNames(act.subjectAction);
       let dynamicLipDirective = replaceTokensAndNames(activeLipDirective);
+
+      // Generate Performance Beats for the block
+      const performanceBeats = this.generatePerformanceBeats(act, blockNum, actorName, actor2Name, charCount, blockCount);
 
       const blockPayload = {
         block_index: blockNum,
@@ -1810,6 +1894,7 @@ class VideoPromptService {
         lip_sync_directive: dynamicLipDirective,
         dialogue_es: act.dialogueEs || act.voDialogueEs,
         dialogue_en: act.dialogueEn || act.voDialogueEn,
+        performance_beats: performanceBeats,
         sfx_foley: act.sfxFoley,
         seed: blockSeed,
         attached_media_directive: attachedMediaDirective,
@@ -1910,7 +1995,7 @@ class VideoPromptService {
     };
 
     if (this.logger) {
-      this.logger.log('creativo', `Generada producción audiovisual de ${blockCount * 10}s (${blockCount} bloques) para [${config.engine}] con Diálogo Lip-Sync y Consistencia Total bajo Tenant [${tenantCtx.tenantId}]`, 'success');
+      this.logger.log('creativo', `Generada producción audiovisual de ${blockCount * 10}s (${blockCount} bloques) para [${config.engine}] con Diálogo Cruzado Multi-Actor y Cero Actores Pasivos bajo Tenant [${tenantCtx.tenantId}]`, 'success');
     }
 
     return {
@@ -1918,6 +2003,83 @@ class VideoPromptService {
       masterScript,
       sequenceBlocks
     };
+  }
+
+  generatePerformanceBeats(act, blockNum, actorName, actor2Name, charCount, totalBlocks) {
+    if (charCount >= 2) {
+      const isOdd = blockNum % 2 === 1;
+      const firstActor = isOdd ? actorName : actor2Name;
+      const secondActor = isOdd ? actor2Name : actorName;
+
+      let dia1 = '';
+      let dia2 = '';
+
+      if (act && act.dialogueEs) {
+        const parts = act.dialogueEs.split(/[.¡!¿?]/).map(s => s.trim()).filter(s => s.length > 0);
+        if (parts.length >= 2) {
+          dia1 = parts[0] + '.';
+          dia2 = parts.slice(1).join('. ') + '.';
+        } else {
+          dia1 = act.dialogueEs;
+          dia2 = `¡Totalmente de acuerdo! Cuidamos cada detalle para tu máxima satisfacción.`;
+        }
+      } else {
+        dia1 = `¡Bienvenidos! Presentamos la más alta calidad en cada detalle.`;
+        dia2 = `Innovación y diseño personalizado para superar todas tus expectativas.`;
+      }
+
+      const beat1 = {
+        beat_index: 1,
+        actor: firstActor,
+        dialogue_es: dia1,
+        emotion: isOdd ? 'entusiasmo contagioso y calidez' : 'convicción profesional y fascinación',
+        physical_action: isOdd 
+          ? 'gesticula cálidamente hacia el producto y sostiene el contacto visual con la cámara'
+          : 'muestra el detalle del producto con elegancia y complementa la escena',
+        eyeline_direction: `mira con seguridad a cámara y conecta visualmente con ${secondActor} con una sonrisa`,
+        listener_reaction: `${secondActor} escucha con atención activa, asiente aprobando y reacciona con una sonrisa cómplice`,
+        estimated_duration_seconds: 5.0
+      };
+
+      const beat2 = {
+        beat_index: 2,
+        actor: secondActor,
+        dialogue_es: dia2,
+        emotion: isOdd ? 'seguridad ejecutiva y orgullo' : 'pasión culinaria y calidez',
+        physical_action: isOdd
+          ? 'da un paso adelante, señala el acabado artesanal y complementa la explicación'
+          : 'coloca delicadamente el toque final y muestra el resultado con satisfacción',
+        eyeline_direction: `contacto visual directo con la cámara tras mirar con aprobación a ${firstActor}`,
+        listener_reaction: `${firstActor} sonríe con complicidad, asiente suavemente y participa activamente en la escena`,
+        estimated_duration_seconds: 5.0
+      };
+
+      return [beat1, beat2];
+    } else {
+      const beat1 = {
+        beat_index: 1,
+        actor: actorName,
+        dialogue_es: act && act.dialogueEs ? act.dialogueEs : '¡Bienvenidos a nuestra presentación exclusiva!',
+        emotion: 'entusiasmo contagioso y visión estratégica',
+        physical_action: 'inicia la presentación con dinamismo, gesticulando hacia la pantalla y mirando a cámara',
+        eyeline_direction: 'contacto visual firme y acogedor hacia la lente',
+        listener_reaction: 'audiencia virtual cautivada por la claridad y precisión de la demostración',
+        estimated_duration_seconds: 5.0
+      };
+
+      const beat2 = {
+        beat_index: 2,
+        actor: actorName,
+        dialogue_es: 'Descubre cómo transformar tus resultados hoy mismo.',
+        emotion: 'seguridad, convicción y cercanía',
+        physical_action: 'hace un gesto de bienvenida y cierra con una sonrisa inspiradora',
+        eyeline_direction: 'mirada directa al lente con expresión radiante',
+        listener_reaction: 'entorno del set resalta con iluminación cinematográfica y confirmación visual',
+        estimated_duration_seconds: 5.0
+      };
+
+      return [beat1, beat2];
+    }
   }
 
   distributeActs(actsCatalog, count) {
@@ -1941,13 +2103,23 @@ class VideoPromptService {
   }
 
   formatSingleBlockPrompt({ engine, aspectRatio, actorName, actor2Name, actorRefTag, actor2RefTag, productRefTag, envRefTag, aesthetic, voiceProfile, audioScore, blockPayload, negativePrompt, blockNum, totalBlocks, timeGlobal }) {
-    const { continuity_directive, attached_media_directive, prompt_chunks, seed, shot_type, speaker, dialogue_es, lip_sync_directive, sfx_foley } = blockPayload;
+    const { continuity_directive, attached_media_directive, prompt_chunks, seed, shot_type, speaker, dialogue_es, lip_sync_directive, sfx_foley, performance_beats } = blockPayload;
     const p1 = prompt_chunks.chunk_0_3s;
     const p2 = prompt_chunks.chunk_3_7s;
     const p3 = prompt_chunks.chunk_7_10s;
 
     const attachedLine = attached_media_directive ? `• ATTACHED MEDIA INPUTS: ${attached_media_directive}\n` : `• ATTACHED MEDIA INPUTS:\n`;
     const charReferences = actor2RefTag ? `${actorRefTag}\n• CHARACTER REFERENCE 2: ${actor2RefTag}` : actorRefTag;
+
+    const beatsPrompt = (performance_beats || []).map(beat => {
+      const timeLabel = beat.beat_index === 1 ? '0.0s - 5.0s' : '5.0s - 10.0s';
+      return `  - BEAT ${beat.beat_index} (${timeLabel}, ${beat.estimated_duration_seconds}s) [Actor: ${beat.actor}]:\n` +
+             `    * Emotion: ${beat.emotion}\n` +
+             `    * Physical Action: ${beat.physical_action}\n` +
+             `    * Eyeline: ${beat.eyeline_direction}\n` +
+             `    * Spoken Dialogue (ES Lip-Sync): "${beat.dialogue_es}"\n` +
+             `    * Co-Star Listener Reaction: ${beat.listener_reaction}`;
+    }).join('\n');
 
     switch (engine) {
       case 'google-flow':
@@ -1962,10 +2134,13 @@ class VideoPromptService {
           `  - (00:00 - 00:03): ${p1}\n` +
           `  - (00:03 - 00:07): ${p2}\n` +
           `  - (00:07 - 00:10): ${p3}\n` +
-          `• ON-CAMERA LIP-SYNC & SPEECH TRACK:\n` +
-          `  - Active Speaker on Camera: [${speaker}]\n` +
-          `  - Facial Visemes & Lip Movement: ${lip_sync_directive || 'Speaks directly on camera with synchronized lip movements and realistic mouth visemes.'}\n` +
-          `  - Spoken Line: "${dialogue_es}" [Voice Profile: ${voiceProfile}]\n` +
+          `• MULTI-ACTOR PERFORMANCE & BEAT-BY-BEAT ACTING DIRECTIVES:\n` +
+          `${beatsPrompt}\n` +
+          `• MANDATORY PERFORMANCE & REAL-TIME INTERACTION RULES:\n` +
+          `  - Bi-directional active engagement: continuous eye contact, mutual micro-expressions, active listening, subtle head nods, organic breathing, and contextual physical reactions.\n` +
+          `  - STRICT PROHIBITIONS: STRICTLY NO voice-over, NO off-screen dialogue, NO frozen actors, NO static mannequin poses, NO inactive co-stars, NO blank stares.\n` +
+          `  - All dialogue MUST be delivered visibly on-camera with synchronized lip-sync in Spanish.\n` +
+          `  - When one character speaks, the co-star visibly reacts and interacts physically in real-time.\n` +
           `• SOUND DESIGN (SFX & SCORE):\n` +
           `  - SFX / Foley: ${sfx_foley}\n` +
           `  - Score / BGM: ${audioScore}\n` +
@@ -1976,17 +2151,17 @@ class VideoPromptService {
           `${attached_media_directive}\n` +
           `${continuity_directive}\n` +
           `Shot: ${shot_type}. Characters: ${actorRefTag}${actor2RefTag ? ' + ' + actor2RefTag : ''}. Product: ${productRefTag}. Environment: ${envRefTag}. Rig: ${aesthetic}\n` +
-          `0-3s: ${p1}\n` +
-          `3-7s: ${p2}\n` +
-          `7-10s: ${p3}\n` +
-          `On-Camera Lip-sync: [${speaker}] delivers: "${dialogue_es}" | SFX: ${sfx_foley} | BGM: ${audioScore}\n` +
+          `Timeline: 0-3s: ${p1} | 3-7s: ${p2} | 7-10s: ${p3}\n` +
+          `Multi-Beat Acting: ${beatsPrompt}\n` +
+          `Rules: On-camera visible lip-sync only. Strictly NO voice-over, NO frozen actors. Real-time listener reaction and active engagement.\n` +
+          `SFX: ${sfx_foley} | BGM: ${audioScore}\n` +
           `Negative: ${negativePrompt} --ar ${aspectRatio} --seed ${seed}`;
 
       case 'kling-1.5':
         return `Cinematic 10s Sequence [Block ${blockNum}/${totalBlocks} | ${timeGlobal}]. ` +
           `${attached_media_directive}. ${continuity_directive} Shot: ${shot_type}. Characters: ${actorRefTag}${actor2RefTag ? ' + ' + actor2RefTag : ''}. Product: ${productRefTag}. Scene: ${envRefTag}. ` +
           `[0-3s]: ${p1}. [3-7s]: ${p2}. [7-10s]: ${p3}. ` +
-          `On-screen speaking with lip-sync: [${speaker}] says "${dialogue_es}". SFX: ${sfx_foley}. Score: ${audioScore}. ` +
+          `Performance Beats: [${beatsPrompt}]. Rules: On-camera dialogue ONLY (no voice-over), continuous eye-contact, natural reactions. SFX: ${sfx_foley}. Score: ${audioScore}. ` +
           `${aesthetic} --neg ${negativePrompt} --ar ${aspectRatio} --seed ${seed}`;
 
       case 'sora':
@@ -1994,14 +2169,14 @@ class VideoPromptService {
           `Framing: ${shot_type}. ${attached_media_directive} ${continuity_directive} ` +
           `Characters: ${actorRefTag}${actor2RefTag ? ' & ' + actor2RefTag : ''} | Product: ${productRefTag} | Scene: ${envRefTag}. ` +
           `Timeline: (0-3s) ${p1}, (3-7s) ${p2}, (7-10s) ${p3}. ` +
-          `Facial Animation: [${speaker}] delivers on-camera dialogue with realistic mouth movement and lip-sync: "${dialogue_es}". Voice: ${voiceProfile}. Score: ${audioScore}.`;
+          `Multi-actor performance beats: ${beatsPrompt}. Rules: Bi-directional eye contact, active co-star reactions, realistic lip movements on camera without voice-over. Voice: ${voiceProfile}. Score: ${audioScore}.`;
 
       case 'luma':
       default:
         return `10s Master Clip [Block ${blockNum}/${totalBlocks} | ${timeGlobal}]. ` +
           `Shot: ${shot_type}. ${attached_media_directive} ${continuity_directive} ` +
           `Characters: ${actorRefTag}${actor2RefTag ? ' & ' + actor2RefTag : ''} with ${productRefTag} in ${envRefTag}. ` +
-          `0-3s: ${p1} | 3-7s: ${p2} | 7-10s: ${p3}. [${speaker}] speaks on camera with lip-sync: "${dialogue_es}". --aspect ${aspectRatio} --seed ${seed}`;
+          `0-3s: ${p1} | 3-7s: ${p2} | 7-10s: ${p3}. Performance Beats: [${beatsPrompt}]. Rules: On-camera dialogue with visible lip-sync and co-star active listening. No voice-over. --aspect ${aspectRatio} --seed ${seed}`;
     }
   }
 
