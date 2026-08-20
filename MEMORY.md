@@ -94,43 +94,33 @@ Este documento registra las decisiones técnicas, estado de certificación, estr
 
 ---
 
-## 4. Estado de Ejecución: FASE 0 & FASE 1 (COMPLETADAS)
+## 4. Estado de Ejecución: FASES 0, 1 Y 2 (COMPLETADAS)
 
 - **Fase 0 — Discovery y Validación de Viabilidad:**
   - `PRD_MVP_PRODUCTION_OS.md`: Especificación del primer vertical (Spot de 20–30s, 16:9, máx 2 personajes, 1 producto, 1 set, 4 tomas independientes, locución TTS en español latino, lip-sync y montaje final en MP4).
   - `PROVEEDORES_COSTOS_RIESGOS.md`: Matriz de proveedores (Kling/Runway, ElevenLabs, SyncLabs, FFmpeg Worker), prueba técnica de viabilidad documentada, modelo de costos unitarios ($1.41 USD/spot estimado) y matriz de riesgos.
 - **Fase 1 — Núcleo de Datos, RLS y Activos Canónicos:**
-  - `supabase_schema.sql`: 12 tablas relacionales (`organizations`, `users`, `organization_members`, `projects`, `creative_briefs`, `voice_profiles`, `canonical_assets`, `asset_versions`, `asset_links`, `audit_events`, `cost_ledger`, `usage_telemetry`) con RLS habilitado y políticas de aislamiento estricto por tenant.
-  - Implementación en `app.js`:
-    - `SecureStorageService`: Generación y validación de URLs firmadas criptográficamente con timestamp de expiración.
-    - `AuditService`: Registro inmutable de eventos sensibles (`audit_events`) con aislamiento multi-tenant.
-    - `CanonicalAssetService`: Creación, versionado (`asset_versions`), archivado, restauración y consultas de activos de marca.
-    - `ProductionOSProjectService`: Guardado y recuperación de borradores en el flujo de 5 pasos con vinculación inmutable de versiones de activos.
+  - `supabase_schema.sql`: 12 tablas relacionales con RLS habilitado y políticas de aislamiento estricto por tenant.
+  - Implementación en `app.js`: `SecureStorageService`, `AuditService`, `CanonicalAssetService`, `ProductionOSProjectService`.
   - Suite de Pruebas: `test_production_os_phase1.js` (6/6 PASS).
+- **Fase 2 — Creative Director, Guion y Storyboard:**
+  - Esquema SQL: Tablas `scripts`, `script_versions`, `scenes`, `shots`, `shot_asset_links`, `storyboard_versions`, `storyboard_approvals` con RLS e índices por proyecto.
+  - Implementación en `app.js`: `CreativeDirectorService` con generación de 3–5 tomas (20–30s), validación de cadencia de locución ($\le 2.5$ palabras/s), asignación de estrategias de transición (`cut`, `b_roll_insert`, `product_insert`, etc.), versionado inmutable y gate de aprobación humana obligatoria.
+  - Suite de Pruebas: `test_production_os_phase2.js` (10/10 PASS).
 
 ---
 
 ## ESTADO DE CERTIFICACIÓN GLOBAL
 
 - **Fase 0 (Discovery & Viabilidad):** APROBADA y documentada.
-- **Fase 1 (Datos, RLS & Activos Canónicos):** IMPLEMENTADA y certificada con pruebas automatizadas.
-- **Suites de Pruebas Automatizadas Totales (31 / 31 PASS - 0 ERRORES):**
+- **Fase 1 (Datos, RLS & Activos Canónicos):** IMPLEMENTADA y certificada.
+- **Fase 2 (Creative Director, Guion & Storyboard):** IMPLEMENTADA y certificada con pruebas automatizadas.
+- **Suites de Pruebas Automatizadas Totales (41 / 41 PASS - 0 ERRORES):**
   1. `test_pmv_storage_catalog.js` (4/4 PASS)
   2. `test_pmv_phase3_export.js` (4/4 PASS)
   3. `test_pmv_phase4_crm.js` (6/6 PASS)
   4. `test_pmv_phase5_supabase.js` (4/4 PASS)
   5. `test_pmv_performance_beats.js` (7/7 PASS)
   6. `test_production_os_phase1.js` (6/6 PASS)
-- **Fases Restantes (Fase 2 a Fase 7):** En espera de auditoría y autorización formal.
-- [ ] Adjuntar una captura de Flow mostrando el prompt y los cuatro assets.
-- [ ] Indicar el modelo exacto usado en Flow/Veo.
-
-### D. Criterios visuales de auditoría:
-- [ ] Sofía habla en cámara con lip-sync aceptable en español.
-- [ ] Moisés escucha activamente y luego habla en cámara.
-- [ ] Sofía reacciona de forma visible durante el diálogo de Moisés.
-- [ ] No hay voz en off ni diálogo fuera de cuadro.
-- [ ] No hay actores congelados, inexpresivos o pasivos.
-- [ ] Rostros, manos, pastel y escenario permanecen estables.
-- [ ] El plano muestra claramente a ambos personajes y el producto.
-- [ ] Se selecciona una variación con calidad visual mínima de 8/10 antes de crear los Bloques 2 y 3.
+  7. `test_production_os_phase2.js` (10/10 PASS)
+- **Fases Restantes (Fase 3 a Fase 7):** En espera de auditoría de Fase 2 y autorización formal de la Dirección.

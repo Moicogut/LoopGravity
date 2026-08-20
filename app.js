@@ -1011,7 +1011,371 @@ class ProductionOSProjectService {
   }
 }
 
-// --- 2E. Professional Production & Timeline Export Engine (Fase 3 PMV) ---
+// ==============================================================================
+// 2E. PRODUCTION OS PHASE 2: CREATIVE DIRECTOR, GUION & STORYBOARD SERVICE
+// ==============================================================================
+
+class CreativeDirectorService {
+  constructor(storageService, projectService, canonicalAssetService, auditService) {
+    this.storage = storageService;
+    this.projectService = projectService;
+    this.assetService = canonicalAssetService;
+    this.audit = auditService;
+    this.MAX_WPS = 2.5; // Max words per second for natural commercial speech
+  }
+
+  _getScriptsKey(tenantId) {
+    return 'production_os_scripts_v1';
+  }
+
+  _getStoryboardsKey(tenantId) {
+    return 'production_os_storyboards_v1';
+  }
+
+  _getApprovalsKey(tenantId) {
+    return 'production_os_approvals_v1';
+  }
+
+  validateSpeechRate(dialogue, durationSeconds) {
+    if (!dialogue || durationSeconds <= 0) return { isValid: true, wordCount: 0, wps: 0, maxAllowedWords: Math.floor(durationSeconds * this.MAX_WPS) };
+    const words = dialogue.trim().split(/\s+/).filter(w => w.length > 0);
+    const wordCount = words.length;
+    const wps = +(wordCount / durationSeconds).toFixed(2);
+    return {
+      isValid: wps <= this.MAX_WPS,
+      wordCount,
+      wps,
+      maxAllowedWords: Math.floor(durationSeconds * this.MAX_WPS)
+    };
+  }
+
+  generateScriptAndStoryboard(tenantId, projectId, { brief = null, customShots = null, userId = 'operator' } = {}) {
+    const project = this.projectService.getProject(tenantId, projectId);
+    if (!project) throw new Error(`[CreativeDirectorService] Project ${projectId} not found.`);
+
+    const effectiveBrief = brief || project.brief || {};
+    const pitch = effectiveBrief.pitch_text || project.name || 'Solución innovadora para impulsar ventas';
+    const cta = effectiveBrief.cta_text || 'Comienza hoy mismo';
+    const audience = effectiveBrief.target_audience || 'Profesionales y Empresas';
+
+    const actor1 = project.asset_links.actor_1;
+    const actor2 = project.asset_links.actor_2;
+    const product = project.asset_links.product;
+    const env = project.asset_links.environment;
+
+    const actor1Name = actor1 ? actor1.asset_name : 'Presentador';
+    const actor2Name = actor2 ? actor2.asset_name : 'Co-presentador';
+    const productName = product ? product.asset_name : 'Producto';
+    const envName = env ? env.asset_name : 'Estudio';
+
+    // Build default 4-shot commercial storyboard (24s total duration)
+    const rawShots = customShots || [
+      {
+        shot_order: 1,
+        shot_type: 'MCU (Medium Close-Up)',
+        shot_classification: 'host',
+        narrative_intention: 'Gancho Emocional & Frustración del Cliente',
+        main_visual_action: `${actor1Name} mira a cámara en ${envName} con gesto de empatía y presenta el problema común.`,
+        dialogue_es: `¿Cansado de perder clientes por no responder a tiempo?`,
+        duration_seconds: 6.0,
+        speaker_role: 'actor_1',
+        transition_strategy: 'product_insert'
+      },
+      {
+        shot_order: 2,
+        shot_type: 'Macro Product Insert / Screen Reveal',
+        shot_classification: 'product_broll',
+        narrative_intention: 'Demostración de Valor & Solución Inmediata',
+        main_visual_action: `Toma dinámica de detalle de ${productName} mostrando la interfaz activa y datos en tiempo real.`,
+        dialogue_es: ``,
+        duration_seconds: 5.0,
+        speaker_role: null,
+        transition_strategy: 'b_roll_insert'
+      },
+      {
+        shot_order: 3,
+        shot_type: 'Medium Two-Shot',
+        shot_classification: 'dialogue',
+        narrative_intention: 'Autoridad & Eficiencia Comprobada',
+        main_visual_action: actor2 
+          ? `${actor2Name} muestra los resultados en ${productName} mientras ${actor1Name} asiente con seguridad.`
+          : `${actor1Name} interactúa con ${productName} mostrando los resultados alcanzados.`,
+        dialogue_es: `${productName} califica y organiza cada oportunidad en segundos.`,
+        duration_seconds: 7.0,
+        speaker_role: actor2 ? 'actor_2' : 'actor_1',
+        transition_strategy: 'cut'
+      },
+      {
+        shot_order: 4,
+        shot_type: 'Hero Portrait & Brand CTA Lockup',
+        shot_classification: 'cta',
+        narrative_intention: 'Llamada a la Acción & Cierre Comercial',
+        main_visual_action: `${actor1Name} ${actor2 ? 'y ' + actor2Name : ''} sonríen con confianza hacia la lente con el logotipo visible.`,
+        dialogue_es: `${cta}. Multiplica tus resultados ahora.`,
+        duration_seconds: 6.0,
+        speaker_role: 'actor_1',
+        transition_strategy: 'cta_lockup'
+      }
+    ];
+
+    // Validate and enrich shots
+    let totalDuration = 0;
+    const processedShots = rawShots.map((s, idx) => {
+      const duration = s.duration_seconds || 6.0;
+      totalDuration += duration;
+      const speechCheck = this.validateSpeechRate(s.dialogue_es, duration);
+
+      if (!speechCheck.isValid) {
+        throw new Error(`[CreativeDirectorService] Toma ${s.shot_order || idx + 1} excede la velocidad de locución permitida: ${speechCheck.wps} wps (Máx: ${this.MAX_WPS} wps).`);
+      }
+
+      // Lock canonical asset version IDs
+      const lockedAssets = {};
+      if (s.speaker_role && project.asset_links[s.speaker_role]) {
+        lockedAssets.speaker = project.asset_links[s.speaker_role];
+      }
+      if (product) lockedAssets.product = product;
+      if (env) lockedAssets.environment = env;
+
+      return {
+        id: `shot_${projectId}_${idx + 1}`,
+        shot_order: idx + 1,
+        shot_type: s.shot_type,
+        shot_classification: s.shot_classification,
+        narrative_intention: s.narrative_intention,
+        main_visual_action: s.main_visual_action,
+        dialogue_es: s.dialogue_es || '',
+        duration_seconds: duration,
+        speech_rate_wps: speechCheck.wps,
+        word_count: speechCheck.wordCount,
+        max_allowed_words: speechCheck.maxAllowedWords,
+        transition_strategy: s.transition_strategy || 'cut',
+        locked_asset_versions: lockedAssets,
+        status: 'draft'
+      };
+    });
+
+    if (processedShots.length < 3 || processedShots.length > 5) {
+      throw new Error(`[CreativeDirectorService] Storyboard debe contener entre 3 y 5 tomas (actual: ${processedShots.length}).`);
+    }
+
+    if (totalDuration < 20.0 || totalDuration > 30.0) {
+      throw new Error(`[CreativeDirectorService] La duración total debe estar entre 20s y 30s (actual: ${totalDuration}s).`);
+    }
+
+    // Persist Script
+    const scriptId = `script_${projectId}_1`;
+    const scriptRecord = {
+      id: scriptId,
+      project_id: projectId,
+      tenant_id: tenantId,
+      title: `${project.name} - Guion Oficial`,
+      logline: pitch,
+      target_audience: audience,
+      cta_text: cta,
+      total_duration_seconds: totalDuration,
+      current_version_number: 1,
+      status: 'draft',
+      shots: processedShots,
+      updated_at: new Date().toISOString()
+    };
+
+    const scripts = this.storage.getItem(tenantId, this._getScriptsKey(tenantId)) || [];
+    const existingScriptIdx = scripts.findIndex(s => s.project_id === projectId);
+    if (existingScriptIdx >= 0) {
+      scripts[existingScriptIdx] = scriptRecord;
+    } else {
+      scripts.push(scriptRecord);
+    }
+    this.storage.setItem(tenantId, this._getScriptsKey(tenantId), scripts);
+
+    // Persist Storyboard Version
+    const storyboardVersionId = `sb_ver_${projectId}_1`;
+    const storyboardRecord = {
+      id: storyboardVersionId,
+      project_id: projectId,
+      script_id: scriptId,
+      tenant_id: tenantId,
+      version_number: 1,
+      total_duration_seconds: totalDuration,
+      shots: processedShots,
+      is_approved: false,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
+    const storyboards = this.storage.getItem(tenantId, this._getStoryboardsKey(tenantId)) || [];
+    const existingSbIdx = storyboards.findIndex(s => s.project_id === projectId && s.version_number === 1);
+    if (existingSbIdx >= 0) {
+      storyboards[existingSbIdx] = storyboardRecord;
+    } else {
+      storyboards.push(storyboardRecord);
+    }
+    this.storage.setItem(tenantId, this._getStoryboardsKey(tenantId), storyboards);
+
+    if (this.audit) {
+      this.audit.logEvent(tenantId, {
+        userId,
+        eventType: 'storyboard_created',
+        resourceType: 'storyboard',
+        resourceId: storyboardVersionId,
+        details: { shots_count: processedShots.length, total_duration: totalDuration }
+      });
+    }
+
+    return {
+      script: scriptRecord,
+      storyboard: storyboardRecord
+    };
+  }
+
+  getStoryboard(tenantId, projectId, versionNumber = null) {
+    const storyboards = this.storage.getItem(tenantId, this._getStoryboardsKey(tenantId)) || [];
+    const projectSbs = storyboards.filter(s => s.project_id === projectId);
+    if (projectSbs.length === 0) return null;
+    if (versionNumber === null) {
+      return projectSbs.sort((a, b) => b.version_number - a.version_number)[0];
+    }
+    return projectSbs.find(s => s.version_number === versionNumber) || null;
+  }
+
+  updateShot(tenantId, projectId, shotId, updatedFields, userId = 'operator') {
+    const currentSb = this.getStoryboard(tenantId, projectId);
+    if (!currentSb) throw new Error(`[CreativeDirectorService] Storyboard not found for project ${projectId}`);
+
+    const shotIdx = currentSb.shots.findIndex(s => s.id === shotId);
+    if (shotIdx < 0) throw new Error(`[CreativeDirectorService] Shot ${shotId} not found.`);
+
+    let targetSb = currentSb;
+    if (currentSb.is_approved) {
+      const nextVersionNum = currentSb.version_number + 1;
+      const newSbId = `sb_ver_${projectId}_${nextVersionNum}`;
+      const clonedShots = JSON.parse(JSON.stringify(currentSb.shots));
+
+      targetSb = {
+        id: newSbId,
+        project_id: projectId,
+        script_id: currentSb.script_id,
+        tenant_id: tenantId,
+        version_number: nextVersionNum,
+        total_duration_seconds: currentSb.total_duration_seconds,
+        shots: clonedShots,
+        is_approved: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      const storyboards = this.storage.getItem(tenantId, this._getStoryboardsKey(tenantId)) || [];
+      storyboards.push(targetSb);
+      this.storage.setItem(tenantId, this._getStoryboardsKey(tenantId), storyboards);
+
+      if (this.audit) {
+        this.audit.logEvent(tenantId, {
+          userId,
+          eventType: 'storyboard_version_bumped',
+          resourceType: 'storyboard',
+          resourceId: newSbId,
+          details: { previous_version: currentSb.version_number, new_version: nextVersionNum, reason: 'Shot edit after approval' }
+        });
+      }
+    }
+
+    const targetShot = targetSb.shots.find(s => s.id === shotId) || targetSb.shots[shotIdx];
+    Object.assign(targetShot, updatedFields);
+
+    if (updatedFields.dialogue_es !== undefined || updatedFields.duration_seconds !== undefined) {
+      const dur = targetShot.duration_seconds || 6.0;
+      const speechCheck = this.validateSpeechRate(targetShot.dialogue_es, dur);
+      if (!speechCheck.isValid) {
+        throw new Error(`[CreativeDirectorService] Modificación excede la velocidad de locución permitida: ${speechCheck.wps} wps.`);
+      }
+      targetShot.speech_rate_wps = speechCheck.wps;
+      targetShot.word_count = speechCheck.wordCount;
+      targetShot.max_allowed_words = speechCheck.maxAllowedWords;
+    }
+
+    targetSb.total_duration_seconds = targetSb.shots.reduce((acc, s) => acc + (s.duration_seconds || 0), 0);
+    targetSb.updated_at = new Date().toISOString();
+
+    const storyboards = this.storage.getItem(tenantId, this._getStoryboardsKey(tenantId)) || [];
+    const idx = storyboards.findIndex(s => s.id === targetSb.id);
+    if (idx >= 0) storyboards[idx] = targetSb;
+    this.storage.setItem(tenantId, this._getStoryboardsKey(tenantId), storyboards);
+
+    if (this.audit) {
+      this.audit.logEvent(tenantId, {
+        userId,
+        eventType: 'shot_updated',
+        resourceType: 'shot',
+        resourceId: shotId,
+        details: { shot_order: targetShot.shot_order, version: targetSb.version_number }
+      });
+    }
+
+    return targetSb;
+  }
+
+  approveStoryboard(tenantId, projectId, storyboardVersionId = null, userId = 'operator', approvalNotes = 'Aprobado para producción') {
+    const sb = storyboardVersionId 
+      ? this.storage.getItem(tenantId, this._getStoryboardsKey(tenantId))?.find(s => s.id === storyboardVersionId)
+      : this.getStoryboard(tenantId, projectId);
+
+    if (!sb) throw new Error(`[CreativeDirectorService] Storyboard not found for approval.`);
+
+    if (sb.shots.length < 3 || sb.shots.length > 5) {
+      throw new Error(`[CreativeDirectorService] No se puede aprobar: número de tomas inválido (${sb.shots.length}).`);
+    }
+    if (sb.total_duration_seconds < 20.0 || sb.total_duration_seconds > 30.0) {
+      throw new Error(`[CreativeDirectorService] No se puede aprobar: duración fuera de rango (${sb.total_duration_seconds}s).`);
+    }
+
+    sb.is_approved = true;
+    sb.shots.forEach(s => s.status = 'approved');
+    sb.updated_at = new Date().toISOString();
+
+    const storyboards = this.storage.getItem(tenantId, this._getStoryboardsKey(tenantId)) || [];
+    const sbIdx = storyboards.findIndex(s => s.id === sb.id);
+    if (sbIdx >= 0) storyboards[sbIdx] = sb;
+    this.storage.setItem(tenantId, this._getStoryboardsKey(tenantId), storyboards);
+
+    const approvals = this.storage.getItem(tenantId, this._getApprovalsKey(tenantId)) || [];
+    const approvalRecord = {
+      id: `appr_${Date.now().toString(36)}_${Math.random().toString(36).substr(2, 4)}`,
+      storyboard_version_id: sb.id,
+      project_id: projectId,
+      tenant_id: tenantId,
+      approved_by_user_id: userId,
+      approved_at: new Date().toISOString(),
+      approval_notes: approvalNotes,
+      is_ready_for_render: true
+    };
+    approvals.push(approvalRecord);
+    this.storage.setItem(tenantId, this._getApprovalsKey(tenantId), approvals);
+
+    if (this.audit) {
+      this.audit.logEvent(tenantId, {
+        userId,
+        eventType: 'storyboard_approved',
+        resourceType: 'storyboard_approval',
+        resourceId: approvalRecord.id,
+        details: { storyboard_id: sb.id, version: sb.version_number, notes: approvalNotes }
+      });
+    }
+
+    return approvalRecord;
+  }
+
+  isReadyForRender(tenantId, projectId) {
+    const sb = this.getStoryboard(tenantId, projectId);
+    if (!sb || !sb.is_approved) return false;
+
+    const approvals = this.storage.getItem(tenantId, this._getApprovalsKey(tenantId)) || [];
+    const approval = approvals.find(a => a.storyboard_version_id === sb.id && a.is_ready_for_render);
+    return Boolean(approval);
+  }
+}
+
+// --- 2F. Professional Production & Timeline Export Engine (Fase 3 PMV) ---
 class ExportEngine {
   constructor() {}
 
@@ -3950,6 +4314,7 @@ if (typeof module !== 'undefined' && module.exports) {
     AuditService,
     CanonicalAssetService,
     ProductionOSProjectService,
+    CreativeDirectorService,
     AssetCatalogService,
     ExportEngine,
     CrmService,
