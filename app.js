@@ -1926,8 +1926,25 @@ class VideoPromptService {
         timeGlobal
       });
 
+      const isFirst = blockNum === 1;
+      const attachedNotice = isFirst
+        ? `[Instrucción Flow: Arrastra solo las imágenes de referencia de los personajes]`
+        : `[Instrucción Flow: Arrastra ÚNICAMENTE el fotograma guardado del Bloque ${blockNum - 1}]`;
+
+      const dialogueSpoken = (performanceBeats && performanceBeats.length > 0)
+        ? performanceBeats.map(b => `${b.actor} dice en español: "${b.dialogue_es}"`).join(' ')
+        : (act.dialogueEs ? `Dice en español: "${act.dialogueEs}"` : '');
+
+      let flowCleanPrompt = '';
+      if (isFirst) {
+        flowCleanPrompt = `${attachedNotice}\nPlano cinematográfico ${act.shotType}. ${actorName}${charCount >= 2 ? ' y ' + actor2Name : ''} en ${envRefTag}. ${act.promptSegment}. ${dialogueSpoken}. ${camera}. Iluminación de estudio 5600K, 8k fotorrealista. Audio en español con voz nítida y sincronización labial.`;
+      } else {
+        flowCleanPrompt = `${attachedNotice}\nToma continua iniciando exactamente desde el fotograma adjunto. Mismos personajes ${actorName}${charCount >= 2 ? ' y ' + actor2Name : ''} con la misma ropa en la misma oficina. ${act.cameraMotion}. ${act.subjectAction}. ${dialogueSpoken}. Misma iluminación y atmósfera. Audio en español con voz profesional.`;
+      }
+
       return {
         ...blockPayload,
+        flow_clean_prompt: flowCleanPrompt,
         assembled_prompt: blockPrompt
       };
     });
@@ -3083,7 +3100,9 @@ if (typeof document !== 'undefined') {
       } else {
         const blockIdx = parseInt(activeTabKey, 10);
         const block = sequenceBlocks.find(b => b.block_index === blockIdx) || sequenceBlocks[0];
-        promptOutput.value = block.assembled_prompt;
+        promptOutput.value = (payload && payload.target_engine === 'google-flow')
+          ? (block.flow_clean_prompt || block.assembled_prompt)
+          : block.assembled_prompt;
       }
     }
 

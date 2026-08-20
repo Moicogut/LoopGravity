@@ -56,6 +56,14 @@ Este documento registra las decisiones técnicas, estado de certificación, estr
   - Escucha activa, contacto visual continuo, microexpresiones, respiración natural y reacción contextual.
 - **Continuidad N-1:** Aplicada a los bloques 2 y 3 mediante directivas de extensión de vector y encadenamiento de media adjunta.
 - **ExportEngine enriquecido:** Incorporación de performance beats en OTIO (clips de audio por beat), FCPXML (marcadores con timecodes), CSV (17 columnas) y Markdown (desglose teatral).
+- **Agente Especializado Flow Director (`.agents/agents/flow-director/agent.md`):**
+  - Diseñado exclusivamente para Google Labs Flow / Omni Flash y Google Veo 2.
+  - Flujo lineal simplificado de 5 pasos: `Idea -> Personajes -> Ambiente -> Guión -> Prompts Flow`.
+  - Regla de anclaje de continuidad estricta: Bloque 1 solo con referencias de personajes; Bloques 2+ anclados con 1 solo fotograma guardado (Start Frame) sin re-adjuntar personajes por separado.
+  - Generación de prompts limpios en lenguaje natural (<60 palabras) con diálogos en español entre comillas y directiva de audio `Audio en español con voz nítida y sincronización labial`.
+- **Modificación en `app.js`:**
+  - Campo `flow_clean_prompt` generado nativamente para cada bloque.
+  - `promptOutput.value` prioriza el prompt limpio y ejecutable al seleccionar Google Flow.
 - **Suites de Pruebas Automatizadas (25 / 25 PASS):**
   1. `test_pmv_storage_catalog.js` (4/4 PASS)
   2. `test_pmv_phase3_export.js` (4/4 PASS)
