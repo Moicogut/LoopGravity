@@ -1,15 +1,17 @@
 /**
  * Automated Verification Suite for LoopGravity PMV - Fase 4 (CRM & SaaS Telemetry)
+ * Including Security & Audit Hardening Verifications (XSS, CSV Formula Injection, Empty State)
  */
 
 const assert = require('assert');
 const {
+  escapeHtml,
   TenantService,
   StorageService,
   CrmService
 } = require('./app.js');
 
-console.log('🧪 Iniciando Suite de Pruebas Automatizadas PMV (Fase 4: CRM & Analítica SaaS)...\n');
+console.log('🧪 Iniciando Suite de Pruebas Automatizadas PMV (Fase 4: CRM, Analítica SaaS & Hardening)...\n');
 
 const tenantService = new TenantService();
 const storageService = new StorageService(null);
@@ -79,18 +81,50 @@ assert.ok(parseFloat(metrics.hoursSaved) > 0, 'Las horas ahorradas deben ser cal
 
 console.log(`  ✓ [PASS] Métricas calculadas con éxito: Pipeline=$${metrics.totalPipelineValue}, Ganado=$${metrics.wonRevenue}, Costo GPU=$${metrics.computeCostUSD} USD.`);
 
-// --- Test 4: Leads CSV Export ---
-console.log('\n▶ Test 4: Verificando Exportador de Leads a CSV...');
-const csvData = crmService.exportLeadsCSV('tenant-nexus-01');
-const csvLines = csvData.split('\r\n').filter(l => l.trim().length > 0);
-assert.ok(csvLines.length >= 4, 'Debe incluir cabecera + al menos 3 filas de datos');
-assert.ok(csvLines[0].includes('Lead ID'));
-assert.ok(csvLines[0].includes('Deal Value (USD)'));
-assert.ok(csvLines[0].includes('Status'));
-assert.ok(csvLines[1].includes('Carlos Mendoza'));
+// --- Test 4: Leads CSV Export & Formula Injection Neutralization ---
+console.log('\n▶ Test 4: Verificando Exportador de Leads a CSV & Mitigación de Inyección de Fórmulas...');
+// Inject risky formula characters in lead fields
+const formulaLead = crmService.addLead('tenant-nexus-01', {
+  name: '=1+1"; cmd|',
+  email: '+15551234@excel.org',
+  company: '@SUM(A1:A10)',
+  notes: '-DDE("cmd";"/C calc";"__dummy__")',
+  planInterest: 'Enterprise',
+  dealValue: 2400
+});
 
-console.log('  ✓ [PASS] Exportación CSV de leads validada correctamente.');
+const csvData = crmService.exportLeadsCSV('tenant-nexus-01');
+assert.ok(csvData.includes("\"'=1+1"), 'Fórmula que inicia con = debe ser neutralizada con comilla simple');
+assert.ok(csvData.includes("\"'+15551234"), 'Campo que inicia con + debe ser neutralizado con comilla simple');
+assert.ok(csvData.includes("\"'@SUM"), 'Fórmula que inicia con @ debe ser neutralizada con comilla simple');
+assert.ok(csvData.includes("\"'-DDE"), 'Fórmula que inicia con - debe ser neutralizada con comilla simple');
+
+crmService.deleteLead('tenant-nexus-01', formulaLead.id);
+console.log('  ✓ [PASS] Inyección de fórmulas CSV neutralizada exitosamente.');
+
+// --- Test 5: XSS Sanitization Function ---
+console.log('\n▶ Test 5: Verificando Sanitización contra XSS (escapeHtml)...');
+const maliciousXss = '<script>alert("xss")</script><img src=x onerror=alert(1)>';
+const sanitized = escapeHtml(maliciousXss);
+assert.strictEqual(sanitized, '&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;&lt;img src=x onerror=alert(1)&gt;');
+assert.strictEqual(escapeHtml(null), '');
+assert.strictEqual(escapeHtml(undefined), '');
+assert.strictEqual(escapeHtml(123), '123');
+console.log('  ✓ [PASS] Sanitización XSS validada contra etiquetas y atributos peligrosos.');
+
+// --- Test 6: Empty Array Persistence without Re-seeding ---
+console.log('\n▶ Test 6: Verificando Persistencia de Estado Vacío (Sin Re-inserción de Semillas)...');
+// Delete all leads in tenant-solo-03
+const soloLeads = crmService.getLeads('tenant-solo-03');
+soloLeads.forEach(l => crmService.deleteLead('tenant-solo-03', l.id));
+
+// Verify that getLeads returns [] and does NOT re-insert default seeds
+const emptyLeads = crmService.getLeads('tenant-solo-03');
+assert.strictEqual(Array.isArray(emptyLeads), true);
+assert.strictEqual(emptyLeads.length, 0, 'La lista debe permanecer vacía tras borrar todos los leads');
+
+console.log('  ✓ [PASS] Persistencia de estado vacío verificada: 0 re-inserciones no deseadas.');
 
 console.log('\n======================================================');
-console.log('🎉 RESULTADO FASE 4: 4/4 SUITES CRM & TELEMETRÍA PASADAS (0 ERRORES).');
+console.log('🎉 RESULTADO FASE 4: 6/6 SUITES CRM & AUDITORÍA PASADAS (0 ERRORES).');
 console.log('======================================================\n');

@@ -3,6 +3,17 @@
  * Architecture: Modular, Type-safe, Multi-tenant Isolation, Multilingual (ES/EN)
  */
 
+// --- Security Helpers ---
+function escapeHtml(unsafe) {
+  if (unsafe === null || unsafe === undefined) return '';
+  return String(unsafe)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 // --- 1. Multilingual Translation Dictionary (i18n) ---
 const I18N = {
   es: {
@@ -663,8 +674,12 @@ class ExportEngine {
 
     const escapeCsv = (val) => {
       if (val === null || val === undefined) return '""';
-      const str = String(val).replace(/"/g, '""');
-      return `"${str}"`;
+      let str = String(val);
+      // Neutralizar inyección de fórmulas de Excel / Sheets
+      if (/^[=+@\-\t\r]/.test(str)) {
+        str = "'" + str;
+      }
+      return `"${str.replace(/"/g, '""')}"`;
     };
 
     const rows = [headers.join(',')];
@@ -817,12 +832,15 @@ class CrmService {
   }
 
   getLeads(tenantId) {
-    let leads = this.storage.getItem(tenantId, this._getKey(tenantId));
-    if (!leads || !Array.isArray(leads) || leads.length === 0) {
-      leads = this.defaultSeedLeads[tenantId] ? [...this.defaultSeedLeads[tenantId]] : [];
-      this.storage.setItem(tenantId, this._getKey(tenantId), leads);
+    const leads = this.storage.getItem(tenantId, this._getKey(tenantId));
+    // Si nunca se ha inicializado la clave (null/undefined), sembrar una sola vez
+    if (leads === null || leads === undefined) {
+      const seed = this.defaultSeedLeads[tenantId] ? [...this.defaultSeedLeads[tenantId]] : [];
+      this.storage.setItem(tenantId, this._getKey(tenantId), seed);
+      return seed;
     }
-    return leads;
+    // Si es un array (incluso vacío []), respetar el estado del usuario
+    return Array.isArray(leads) ? leads : [];
   }
 
   addLead(tenantId, leadData) {
@@ -887,8 +905,12 @@ class CrmService {
 
     const escapeCsv = (val) => {
       if (val === null || val === undefined) return '""';
-      const str = String(val).replace(/"/g, '""');
-      return `"${str}"`;
+      let str = String(val);
+      // Neutralizar inyección de fórmulas de Excel / Sheets
+      if (/^[=+@\-\t\r]/.test(str)) {
+        str = "'" + str;
+      }
+      return `"${str.replace(/"/g, '""')}"`;
     };
 
     const rows = [headers.join(',')];
@@ -3069,14 +3091,14 @@ if (typeof document !== 'undefined') {
           return `
             <tr>
               <td>
-                <div style="font-weight: 700; color: var(--text-primary);">${l.name}</div>
-                <div style="font-size: 11px; color: var(--text-secondary);">${l.email} • <span style="color: var(--color-accent-cyan);">${l.company}</span></div>
+                <div style="font-weight: 700; color: var(--text-primary);">${escapeHtml(l.name)}</div>
+                <div style="font-size: 11px; color: var(--text-secondary);">${escapeHtml(l.email)} • <span style="color: var(--color-accent-cyan);">${escapeHtml(l.company)}</span></div>
               </td>
-              <td><span class="badge badge-glow" style="font-size: 10px;">${l.planInterest}</span></td>
-              <td style="font-family: var(--font-mono); font-weight: 700;">$${(l.dealValue || 0).toLocaleString()}</td>
-              <td><span class="score-pill ${scoreClass}">${l.leadScore}/100</span></td>
+              <td><span class="badge badge-glow" style="font-size: 10px;">${escapeHtml(l.planInterest)}</span></td>
+              <td style="font-family: var(--font-mono); font-weight: 700;">$${(Number(l.dealValue) || 0).toLocaleString()}</td>
+              <td><span class="score-pill ${scoreClass}">${Number(l.leadScore) || 0}/100</span></td>
               <td>
-                <select class="crm-status-select" data-lead-id="${l.id}" aria-label="Cambiar estado del lead">
+                <select class="crm-status-select" data-lead-id="${escapeHtml(l.id)}" aria-label="Cambiar estado del lead">
                   <option value="new" ${l.status === 'new' ? 'selected' : ''}>Nuevo</option>
                   <option value="ai_qualified" ${l.status === 'ai_qualified' ? 'selected' : ''}>Calificado IA</option>
                   <option value="demo_scheduled" ${l.status === 'demo_scheduled' ? 'selected' : ''}>Demo Agendada</option>
@@ -3084,9 +3106,9 @@ if (typeof document !== 'undefined') {
                   <option value="lost" ${l.status === 'lost' ? 'selected' : ''}>❌ Perdido</option>
                 </select>
               </td>
-              <td style="font-size: 11px; color: var(--text-muted);">${l.source || 'Web'}</td>
+              <td style="font-size: 11px; color: var(--text-muted);">${escapeHtml(l.source || 'Web')}</td>
               <td>
-                <button class="btn btn-sm btn-secondary btn-delete-lead" data-lead-id="${l.id}" title="Eliminar lead" style="padding: 3px 8px; font-size: 11px; color: #f87171;">🗑️</button>
+                <button class="btn btn-sm btn-secondary btn-delete-lead" data-lead-id="${escapeHtml(l.id)}" title="Eliminar lead" style="padding: 3px 8px; font-size: 11px; color: #f87171;">🗑️</button>
               </td>
             </tr>
           `;
@@ -3231,6 +3253,7 @@ if (typeof document !== 'undefined') {
 // CommonJS Exports for automated test runner
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
+    escapeHtml,
     TenantService,
     StorageService,
     AssetCatalogService,
