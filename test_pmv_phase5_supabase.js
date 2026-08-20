@@ -28,8 +28,8 @@ assert.ok(sqlContent.includes('CREATE TABLE IF NOT EXISTS public.asset_catalog')
 assert.ok(sqlContent.includes('CREATE TABLE IF NOT EXISTS public.crm_leads'), 'Debe crear tabla crm_leads');
 assert.ok(sqlContent.includes('CREATE TABLE IF NOT EXISTS public.usage_telemetry'), 'Debe crear tabla usage_telemetry');
 
-// Check for auth.current_tenant_id() function
-assert.ok(sqlContent.includes('CREATE OR REPLACE FUNCTION auth.current_tenant_id()'), 'Debe definir auth.current_tenant_id()');
+// Check for public.current_tenant_id() function
+assert.ok(sqlContent.includes('CREATE OR REPLACE FUNCTION public.current_tenant_id()'), 'Debe definir public.current_tenant_id()');
 
 // Check for RLS enablement on all tables
 assert.ok(sqlContent.includes('ALTER TABLE public.tenants ENABLE ROW LEVEL SECURITY;'), 'RLS en tenants');

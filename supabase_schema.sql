@@ -10,9 +10,11 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- 2. FUNCIÓN DE RESOLUCIÓN DE TENANT DESDE AUTH JWT
 -- Extrae tenant_id desde app_metadata o user_metadata del token JWT autenticado
-CREATE OR REPLACE FUNCTION auth.current_tenant_id()
+CREATE OR REPLACE FUNCTION public.current_tenant_id()
 RETURNS text LANGUAGE sql STABLE SECURITY DEFINER AS $$
   SELECT COALESCE(
+    (auth.jwt() -> 'app_metadata' ->> 'tenant_id'),
+    (auth.jwt() -> 'user_metadata' ->> 'tenant_id'),
     (NULLIF(current_setting('request.jwt.claims', true), '')::jsonb -> 'app_metadata' ->> 'tenant_id'),
     (NULLIF(current_setting('request.jwt.claims', true), '')::jsonb -> 'user_metadata' ->> 'tenant_id'),
     NULLIF(current_setting('request.jwt.claim.tenant_id', true), '')
@@ -98,36 +100,36 @@ ALTER TABLE public.usage_telemetry ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS tenant_isolation_tenants ON public.tenants;
 CREATE POLICY tenant_isolation_tenants ON public.tenants
   FOR ALL
-  USING (id = auth.current_tenant_id() OR auth.current_tenant_id() IS NULL)
-  WITH CHECK (id = auth.current_tenant_id());
+  USING (id = public.current_tenant_id() OR public.current_tenant_id() IS NULL)
+  WITH CHECK (id = public.current_tenant_id());
 
 -- Projects
 DROP POLICY IF EXISTS tenant_isolation_projects ON public.projects;
 CREATE POLICY tenant_isolation_projects ON public.projects
   FOR ALL
-  USING (tenant_id = auth.current_tenant_id())
-  WITH CHECK (tenant_id = auth.current_tenant_id());
+  USING (tenant_id = public.current_tenant_id())
+  WITH CHECK (tenant_id = public.current_tenant_id());
 
 -- Asset Catalog
 DROP POLICY IF EXISTS tenant_isolation_catalog ON public.asset_catalog;
 CREATE POLICY tenant_isolation_catalog ON public.asset_catalog
   FOR ALL
-  USING (tenant_id = auth.current_tenant_id())
-  WITH CHECK (tenant_id = auth.current_tenant_id());
+  USING (tenant_id = public.current_tenant_id())
+  WITH CHECK (tenant_id = public.current_tenant_id());
 
 -- CRM Leads
 DROP POLICY IF EXISTS tenant_isolation_leads ON public.crm_leads;
 CREATE POLICY tenant_isolation_leads ON public.crm_leads
   FOR ALL
-  USING (tenant_id = auth.current_tenant_id())
-  WITH CHECK (tenant_id = auth.current_tenant_id());
+  USING (tenant_id = public.current_tenant_id())
+  WITH CHECK (tenant_id = public.current_tenant_id());
 
 -- Usage Telemetry
 DROP POLICY IF EXISTS tenant_isolation_telemetry ON public.usage_telemetry;
 CREATE POLICY tenant_isolation_telemetry ON public.usage_telemetry
   FOR ALL
-  USING (tenant_id = auth.current_tenant_id())
-  WITH CHECK (tenant_id = auth.current_tenant_id());
+  USING (tenant_id = public.current_tenant_id())
+  WITH CHECK (tenant_id = public.current_tenant_id());
 
 -- 11. SEMILLAS INICIALES (TENANTS, MODEL SHEETS & LEADS CANÓNICOS)
 
