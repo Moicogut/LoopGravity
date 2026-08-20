@@ -74,13 +74,30 @@ Este documento registra las decisiones técnicas, estado de certificación, estr
 
 ---
 
+---
+
+## 3. Estado Oficial de Arquitectura: LoopGravity Production OS
+
+**Declaración Oficial:**  
+*LOOPGRAVITY PRODUCTION OS — ARQUITECTURA EN DISEÑO. LA CONTINUIDAD SE RESUELVE POR PRODUCCIÓN, QA Y EDICIÓN; NO POR PROMPTS DE EXTENSIÓN DETERMINISTA N-1.*
+
+- **Evolución del Producto:** LoopGravity deja de definirse como un generador de prompts para Flow/Veo y se redefine como **Plataforma de Producción Audiovisual con IA desacoplada**.
+- **Documento Rector:** [`PLAN_IMPLEMENTACION_LOOPGRAVITY_PRODUCTION_OS.md`](file:///c:/Users/Rolando/Downloads/Prueba%20equipo%20agentes/PLAN_IMPLEMENTACION_LOOPGRAVITY_PRODUCTION_OS.md).
+- **Pilares del Rediseño:**
+  1. *UX Simple en 5 pasos:* `Idea -> Personajes -> Ambiente -> Guion -> Producir video`.
+  2. *Canonical Asset System:* Fichas inmutables de personajes, vestuario, producto y ambiente.
+  3. *Tomas Independientes & B-Roll:* El Render Orchestrator genera tomas desacopladas; la continuidad se asegura mediante montaje editorial e insertos de producto.
+  4. *Voice & Lip-Sync Desacoplados:* TTS previo (ElevenLabs) + Lip-Sync posterior (SyncLabs).
+  5. *Continuity QA & Revisión Humana:* Aprobación obligatoria antes de ensamblar.
+  6. *Auto Editor FFmpeg:* Renderizado final en la nube en MP4 con pistas de audio separadas y subtítulos.
+  7. *Aislamiento Multi-Tenant & Cost Ledger:* Supabase RLS y control de presupuesto por tenant.
+
+---
+
 ## ESTADO DE CERTIFICACIÓN
 
-- **Arquitectura del PMV:** Aprobada.
-- **Seguridad frontend y Supabase RLS:** Aprobadas según pruebas técnicas.
-- **Video Performance Engine:** Implementado y pendiente de auditoría directa de código integrado en GitHub.
-- **Calidad audiovisual profesional:** NO certificada todavía.
-- **Pase audiovisual final a producción:** BLOQUEADO hasta revisar renders reales.
+- **Arquitectura de Production OS:** Documentada en [`PLAN_IMPLEMENTACION_LOOPGRAVITY_PRODUCTION_OS.md`](file:///c:/Users/Rolando/Downloads/Prueba%20equipo%20agentes/PLAN_IMPLEMENTACION_LOOPGRAVITY_PRODUCTION_OS.md) y pendiente de auditoría y aprobación formal.
+- **Implementación de Código (Fase 0 y Fase 1):** BLOQUEADA hasta recibir aprobación formal del plan sincronizado en GitHub `main`.
 
 ---
 
