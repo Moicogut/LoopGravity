@@ -241,10 +241,151 @@ class TenantService {
   }
 }
 
+// --- 2A. Supabase Cloud Storage & RLS Adapter (Fase 5) ---
+class SupabaseStorageAdapter {
+  constructor(supabaseUrl, supabaseAnonKey) {
+    this.supabaseUrl = supabaseUrl || 'https://bsftifcgyuaubmachzvi.supabase.co';
+    this.supabaseAnonKey = supabaseAnonKey || '';
+    this.client = null;
+    this._initClient();
+  }
+
+  _initClient() {
+    if (typeof window !== 'undefined' && window.supabase && this.supabaseAnonKey) {
+      try {
+        this.client = window.supabase.createClient(this.supabaseUrl, this.supabaseAnonKey);
+      } catch (err) {
+        console.warn('[SupabaseStorageAdapter] Client init fallback to offline:', err);
+      }
+    }
+  }
+
+  isCloudConnected() {
+    return this.client !== null;
+  }
+
+  async getProjects(tenantId) {
+    if (!this.client) return null;
+    const { data, error } = await this.client
+      .from('projects')
+      .select('*')
+      .eq('tenant_id', tenantId)
+      .order('updated_at', { ascending: false });
+    if (error) throw error;
+    return data.map(p => ({ ...p.data, id: p.id, name: p.name, tenantId: p.tenant_id, updatedAt: p.updated_at, createdAt: p.created_at }));
+  }
+
+  async saveProject(tenantId, project) {
+    if (!this.client) return null;
+    const record = {
+      id: project.id || `proj_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+      tenant_id: tenantId,
+      name: project.name,
+      data: project.data || project,
+      updated_at: new Date().toISOString()
+    };
+    const { data, error } = await this.client
+      .from('projects')
+      .upsert(record)
+      .select()
+      .single();
+    if (error) throw error;
+    return { ...data.data, id: data.id, name: data.name, tenantId: data.tenant_id, updatedAt: data.updated_at };
+  }
+
+  async deleteProject(tenantId, projectId) {
+    if (!this.client) return null;
+    const { error } = await this.client
+      .from('projects')
+      .delete()
+      .eq('id', projectId)
+      .eq('tenant_id', tenantId);
+    if (error) throw error;
+    return true;
+  }
+
+  async getLeads(tenantId) {
+    if (!this.client) return null;
+    const { data, error } = await this.client
+      .from('crm_leads')
+      .select('*')
+      .eq('tenant_id', tenantId)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return data.map(l => ({
+      id: l.id,
+      tenantId: l.tenant_id,
+      name: l.name,
+      email: l.email,
+      company: l.company,
+      planInterest: l.plan_interest,
+      dealValue: Number(l.deal_value),
+      status: l.status,
+      leadScore: l.lead_score,
+      source: l.source,
+      notes: l.notes,
+      createdAt: l.created_at,
+      updatedAt: l.updated_at
+    }));
+  }
+
+  async addLead(tenantId, lead) {
+    if (!this.client) return null;
+    const record = {
+      id: lead.id || `lead_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+      tenant_id: tenantId,
+      name: lead.name,
+      email: lead.email,
+      company: lead.company,
+      plan_interest: lead.planInterest || 'Pro Squad',
+      deal_value: lead.dealValue || 588,
+      status: lead.status || 'new',
+      lead_score: lead.leadScore || 75,
+      source: lead.source || 'Landing Form',
+      notes: lead.notes || ''
+    };
+    const { data, error } = await this.client
+      .from('crm_leads')
+      .insert(record)
+      .select()
+      .single();
+    if (error) throw error;
+    return {
+      id: data.id,
+      tenantId: data.tenant_id,
+      name: data.name,
+      email: data.email,
+      company: data.company,
+      planInterest: data.plan_interest,
+      dealValue: Number(data.deal_value),
+      status: data.status,
+      leadScore: data.lead_score,
+      source: data.source,
+      notes: data.notes,
+      createdAt: data.created_at
+    };
+  }
+
+  async recordTelemetry(tenantId, { videoSeconds = 0, tokens = 0, engine = 'google-flow' }) {
+    if (!this.client) return null;
+    const { error } = await this.client
+      .from('usage_telemetry')
+      .insert({
+        tenant_id: tenantId,
+        video_seconds: videoSeconds,
+        tokens: tokens,
+        engine: engine
+      });
+    if (error) console.error('[SupabaseStorageAdapter] Failed to record telemetry:', error);
+    return true;
+  }
+}
+
 // --- 2B. Multi-Tenant Storage & Persistence Service (Fase 1 PMV) ---
 class StorageService {
-  constructor() {
+  constructor(cloudAdapter = null) {
     this.memoryStore = new Map();
+    this.cloudAdapter = cloudAdapter;
   }
 
   _isLocalStorageAvailable() {
@@ -3255,6 +3396,7 @@ if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     escapeHtml,
     TenantService,
+    SupabaseStorageAdapter,
     StorageService,
     AssetCatalogService,
     ExportEngine,
