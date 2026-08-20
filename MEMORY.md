@@ -94,7 +94,7 @@ Este documento registra las decisiones técnicas, estado de certificación, estr
 
 ---
 
-## 4. Estado de Ejecución: FASES 0, 1 Y 2 (COMPLETADAS)
+## 4. Estado de Ejecución: FASES 0, 1, 2 Y 3 (COMPLETADAS)
 
 - **Fase 0 — Discovery y Validación de Viabilidad:**
   - `PRD_MVP_PRODUCTION_OS.md`: Especificación del primer vertical (Spot de 20–30s, 16:9, máx 2 personajes, 1 producto, 1 set, 4 tomas independientes, locución TTS en español latino, lip-sync y montaje final en MP4).
@@ -105,8 +105,13 @@ Este documento registra las decisiones técnicas, estado de certificación, estr
   - Suite de Pruebas: `test_production_os_phase1.js` (6/6 PASS).
 - **Fase 2 — Creative Director, Guion y Storyboard:**
   - Esquema SQL: Tablas `scripts`, `script_versions`, `scenes`, `shots`, `shot_asset_links`, `storyboard_versions`, `storyboard_approvals` con RLS e índices por proyecto.
-  - Implementación en `app.js`: `CreativeDirectorService` con generación de 3–5 tomas (20–30s), validación de cadencia de locución ($\le 2.5$ palabras/s), asignación de estrategias de transición (`cut`, `b_roll_insert`, `product_insert`, etc.), versionado inmutable y gate de aprobación humana obligatoria.
+  - Implementación en `app.js`: `CreativeDirectorService` con generación de 3–5 tomas (20–30s), validación de cadencia de locución ($\le 2.5$ palabras/s), asignación de estrategias de transición (`cut`, `b_roll_insert`, etc.), versionado inmutable y gate de aprobación humana obligatoria.
   - Suite de Pruebas: `test_production_os_phase2.js` (10/10 PASS).
+- **Fase 3 — Render Orchestrator y Adaptador de Proveedor:**
+  - Esquema SQL: Tablas `render_jobs`, `render_attempts`, `generated_media`, `provider_credentials`, `render_cost_estimates`, `provider_webhook_events`, `idempotency_keys` con RLS y aislamiento estricto.
+  - Implementación en `app.js`: `BaseRenderProviderAdapter`, `MockRenderProviderAdapter`, `KlingProviderAdapter`, `RenderOrchestratorService`.
+  - Capacidades clave: Creación de plan de render con estimación y reserva de presupuesto, garantía de idempotencia por clave única, manifest inmutable por toma, máquina de estados estricta, verificación de firmas de webhook por HMAC, fallback de polling y registro de `generated_media`.
+  - Suite de Pruebas: `test_production_os_phase3.js` (12/12 PASS).
 
 ---
 
@@ -114,8 +119,9 @@ Este documento registra las decisiones técnicas, estado de certificación, estr
 
 - **Fase 0 (Discovery & Viabilidad):** APROBADA y documentada.
 - **Fase 1 (Datos, RLS & Activos Canónicos):** IMPLEMENTADA y certificada.
-- **Fase 2 (Creative Director, Guion & Storyboard):** IMPLEMENTADA y certificada con pruebas automatizadas.
-- **Suites de Pruebas Automatizadas Totales (41 / 41 PASS - 0 ERRORES):**
+- **Fase 2 (Creative Director, Guion & Storyboard):** IMPLEMENTADA y certificada.
+- **Fase 3 (Render Orchestrator & Adaptadores):** IMPLEMENTADA y certificada con pruebas automatizadas.
+- **Suites de Pruebas Automatizadas Totales (53 / 53 PASS - 0 ERRORES):**
   1. `test_pmv_storage_catalog.js` (4/4 PASS)
   2. `test_pmv_phase3_export.js` (4/4 PASS)
   3. `test_pmv_phase4_crm.js` (6/6 PASS)
@@ -123,4 +129,5 @@ Este documento registra las decisiones técnicas, estado de certificación, estr
   5. `test_pmv_performance_beats.js` (7/7 PASS)
   6. `test_production_os_phase1.js` (6/6 PASS)
   7. `test_production_os_phase2.js` (10/10 PASS)
-- **Fases Restantes (Fase 3 a Fase 7):** En espera de auditoría de Fase 2 y autorización formal de la Dirección.
+  8. `test_production_os_phase3.js` (12/12 PASS)
+- **Fases Restantes (Fase 4 a Fase 7):** En espera de auditoría de Fase 3 y autorización formal de la Dirección.

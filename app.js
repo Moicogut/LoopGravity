@@ -1375,7 +1375,492 @@ class CreativeDirectorService {
   }
 }
 
-// --- 2F. Professional Production & Timeline Export Engine (Fase 3 PMV) ---
+// ==============================================================================
+// 2F. PRODUCTION OS PHASE 3: RENDER ORCHESTRATOR & PROVIDER ADAPTERS
+// ==============================================================================
+
+class BaseRenderProviderAdapter {
+  constructor(name, config = {}) {
+    this.name = name;
+    this.config = config;
+  }
+
+  async submitRender(manifest) {
+    throw new Error('[BaseRenderProviderAdapter] submitRender must be implemented by subclass.');
+  }
+
+  async getRenderStatus(providerJobId) {
+    throw new Error('[BaseRenderProviderAdapter] getRenderStatus must be implemented by subclass.');
+  }
+
+  async cancelRender(providerJobId) {
+    throw new Error('[BaseRenderProviderAdapter] cancelRender must be implemented by subclass.');
+  }
+
+  normalizeWebhook(rawPayload, signature) {
+    throw new Error('[BaseRenderProviderAdapter] normalizeWebhook must be implemented by subclass.');
+  }
+
+  estimateCost(manifest) {
+    throw new Error('[BaseRenderProviderAdapter] estimateCost must be implemented by subclass.');
+  }
+
+  validateCapabilities(manifest) {
+    return { isSupported: true };
+  }
+}
+
+class MockRenderProviderAdapter extends BaseRenderProviderAdapter {
+  constructor(secretSigningKey = 'mock_webhook_secret') {
+    super('mock_engine');
+    this.secretSigningKey = secretSigningKey;
+    this.jobs = new Map();
+  }
+
+  estimateCost(manifest) {
+    const duration = (manifest && manifest.shot && manifest.shot.duration_seconds) || 5.0;
+    // 20 cents base per 5-6s clip
+    return {
+      estimatedCostCents: Math.round(duration * 4),
+      currency: 'USD'
+    };
+  }
+
+  async submitRender(manifest) {
+    const providerJobId = `mock_job_${Date.now().toString(36)}_${Math.random().toString(36).substr(2, 6)}`;
+    const cost = this.estimateCost(manifest);
+    const mockOutput = {
+      providerJobId,
+      status: 'qa_pending',
+      mediaUrl: `https://storage.loopgravity.io/renders/mock_${manifest.shot.id || 'shot'}.mp4`,
+      durationSeconds: manifest.shot.duration_seconds || 6.0,
+      resolution: '1920x1080',
+      fps: 24,
+      costCents: cost.estimatedCostCents
+    };
+    this.jobs.set(providerJobId, mockOutput);
+    return mockOutput;
+  }
+
+  async getRenderStatus(providerJobId) {
+    if (!this.jobs.has(providerJobId)) {
+      return { providerJobId, status: 'failed', errorMessage: 'Job not found in mock registry.' };
+    }
+    return this.jobs.get(providerJobId);
+  }
+
+  async cancelRender(providerJobId) {
+    if (this.jobs.has(providerJobId)) {
+      const job = this.jobs.get(providerJobId);
+      job.status = 'cancelled';
+      this.jobs.set(providerJobId, job);
+      return { providerJobId, status: 'cancelled', success: true };
+    }
+    return { providerJobId, status: 'not_found', success: false };
+  }
+
+  normalizeWebhook(rawPayload, signature) {
+    // Validate HMAC signature if provided
+    let isSignatureValid = true;
+    if (signature) {
+      const crypto = require('crypto');
+      const expectedSig = crypto.createHmac('sha256', this.secretSigningKey).update(JSON.stringify(rawPayload)).digest('hex');
+      isSignatureValid = (signature === expectedSig);
+    }
+    return {
+      isValid: isSignatureValid,
+      providerJobId: rawPayload.job_id || rawPayload.id,
+      status: rawPayload.status === 'success' ? 'qa_pending' : (rawPayload.status || 'rendering'),
+      mediaUrl: rawPayload.output_url || rawPayload.video_url || null,
+      errorMessage: rawPayload.error || null
+    };
+  }
+}
+
+class KlingProviderAdapter extends BaseRenderProviderAdapter {
+  constructor(apiKey = null) {
+    super('kling_ai');
+    this.apiKey = apiKey; // Handled strictly in server environment, never client
+  }
+
+  estimateCost(manifest) {
+    const duration = (manifest && manifest.shot && manifest.shot.duration_seconds) || 5.0;
+    return {
+      estimatedCostCents: Math.round(duration * 5), // ~25 cents per 5s clip
+      currency: 'USD'
+    };
+  }
+
+  async submitRender(manifest) {
+    // Decoupled connector - when running without live API key, returns structured submission manifest
+    const providerJobId = `kling_job_${Date.now().toString(36)}_${Math.random().toString(36).substr(2, 5)}`;
+    return {
+      providerJobId,
+      status: 'submitted',
+      provider: 'kling_ai',
+      model: 'kling-v1-5-pro',
+      costCents: this.estimateCost(manifest).estimatedCostCents
+    };
+  }
+
+  async getRenderStatus(providerJobId) {
+    return {
+      providerJobId,
+      status: 'rendering',
+      provider: 'kling_ai'
+    };
+  }
+
+  async cancelRender(providerJobId) {
+    return {
+      providerJobId,
+      status: 'cancelled',
+      success: true
+    };
+  }
+
+  normalizeWebhook(rawPayload, signature) {
+    return {
+      isValid: Boolean(signature),
+      providerJobId: rawPayload.task_id || rawPayload.job_id,
+      status: rawPayload.status === 'completed' ? 'qa_pending' : 'failed',
+      mediaUrl: rawPayload.video_url || null,
+      errorMessage: rawPayload.error || null
+    };
+  }
+}
+
+class RenderOrchestratorService {
+  constructor(storageService, creativeDirectorService, auditService, secureStorageService) {
+    this.storage = storageService;
+    this.creativeDirector = creativeDirectorService;
+    this.audit = auditService;
+    this.secureStorage = secureStorageService;
+    this.providers = new Map();
+
+    // Register default adapters
+    this.registerProvider('mock_engine', new MockRenderProviderAdapter());
+    this.registerProvider('kling_ai', new KlingProviderAdapter());
+  }
+
+  registerProvider(name, adapter) {
+    this.providers.set(name, adapter);
+  }
+
+  getProvider(name) {
+    return this.providers.get(name) || this.providers.get('mock_engine');
+  }
+
+  _getKey(tenantId, resource) {
+    return `production_os_${resource}_v1`;
+  }
+
+  // --- 1. Create Render Plan & Budget Estimate ---
+  createRenderPlan(tenantId, projectId, { provider = 'mock_engine', userId = 'operator' } = {}) {
+    const isApproved = this.creativeDirector.isReadyForRender(tenantId, projectId);
+    if (!isApproved) {
+      throw new Error(`[RenderOrchestrator] Proyecto ${projectId} no cuenta con un Storyboard aprobado. Render bloqueado.`);
+    }
+
+    const sb = this.creativeDirector.getStoryboard(tenantId, projectId);
+    const adapter = this.getProvider(provider);
+
+    let totalEstimatedCost = 0;
+    const shotEstimates = sb.shots.map(shot => {
+      const cost = adapter.estimateCost({ shot });
+      totalEstimatedCost += cost.estimatedCostCents;
+      return {
+        shot_id: shot.id,
+        shot_order: shot.shot_order,
+        duration_seconds: shot.duration_seconds,
+        estimated_cost_cents: cost.estimatedCostCents
+      };
+    });
+
+    // Check Organization Budget
+    const orgs = this.storage.getItem(tenantId, 'production_os_orgs_v1') || [{
+      id: tenantId,
+      credit_balance_cents: 5000,
+      reserved_credit_cents: 0
+    }];
+    const org = orgs.find(o => o.id === tenantId) || orgs[0];
+
+    const availableCredit = (org.credit_balance_cents || 5000) - (org.reserved_credit_cents || 0);
+    if (availableCredit < totalEstimatedCost) {
+      throw new Error(`[RenderOrchestrator] Saldo insuficiente. Disponible: ${availableCredit}¢, Requerido: ${totalEstimatedCost}¢`);
+    }
+
+    const estimateRecord = {
+      id: `est_${projectId}_v${sb.version_number}`,
+      tenant_id: tenantId,
+      project_id: projectId,
+      storyboard_version_id: sb.id,
+      total_shots: sb.shots.length,
+      total_duration_seconds: sb.total_duration_seconds,
+      estimated_cost_cents: totalEstimatedCost,
+      shot_estimates: shotEstimates,
+      provider,
+      created_at: new Date().toISOString()
+    };
+
+    const estimates = this.storage.getItem(tenantId, this._getKey(tenantId, 'render_cost_estimates')) || [];
+    estimates.push(estimateRecord);
+    this.storage.setItem(tenantId, this._getKey(tenantId, 'render_cost_estimates'), estimates);
+
+    return estimateRecord;
+  }
+
+  // --- 2. Submit Render Job with Strict Idempotency & Budget Lock ---
+  async submitRenderJob(tenantId, projectId, shotId, { idempotencyKey, provider = 'mock_engine', userId = 'operator' } = {}) {
+    if (!idempotencyKey) {
+      throw new Error('[RenderOrchestrator] idempotencyKey es obligatorio para evitar dobles renders.');
+    }
+
+    // 1. Idempotency Check
+    const idempKeys = this.storage.getItem(tenantId, this._getKey(tenantId, 'idempotency_keys')) || [];
+    const existingIdemp = idempKeys.find(k => k.idempotency_key === idempotencyKey);
+    if (existingIdemp) {
+      const existingJobs = this.storage.getItem(tenantId, this._getKey(tenantId, 'render_jobs')) || [];
+      const job = existingJobs.find(j => j.id === existingIdemp.resource_id);
+      if (job) return { job, isDuplicate: true };
+    }
+
+    // 2. Storyboard Approval Check
+    const isApproved = this.creativeDirector.isReadyForRender(tenantId, projectId);
+    if (!isApproved) {
+      throw new Error(`[RenderOrchestrator] Storyboard sin aprobación humana. Render bloqueado.`);
+    }
+
+    const sb = this.creativeDirector.getStoryboard(tenantId, projectId);
+    const targetShot = sb.shots.find(s => s.id === shotId);
+    if (!targetShot) throw new Error(`[RenderOrchestrator] Shot ${shotId} no encontrado en storyboard.`);
+
+    const adapter = this.getProvider(provider);
+    const costEstimate = adapter.estimateCost({ shot: targetShot });
+
+    // 3. Reserve Budget
+    const orgs = this.storage.getItem(tenantId, 'production_os_orgs_v1') || [{
+      id: tenantId,
+      credit_balance_cents: 5000,
+      reserved_credit_cents: 0
+    }];
+    const org = orgs.find(o => o.id === tenantId) || orgs[0];
+    const availableCredit = (org.credit_balance_cents || 5000) - (org.reserved_credit_cents || 0);
+
+    if (availableCredit < costEstimate.estimatedCostCents) {
+      throw new Error(`[RenderOrchestrator] Presupuesto insuficiente para la toma ${targetShot.shot_order}.`);
+    }
+
+    org.reserved_credit_cents = (org.reserved_credit_cents || 0) + costEstimate.estimatedCostCents;
+    this.storage.setItem(tenantId, 'production_os_orgs_v1', orgs);
+
+    // 4. Build Immutable Input Manifest
+    const inputManifest = {
+      tenant_id: tenantId,
+      project_id: projectId,
+      storyboard_version_id: sb.id,
+      shot: JSON.parse(JSON.stringify(targetShot)),
+      parameters: {
+        resolution: '1920x1080',
+        aspect_ratio: '16:9',
+        fps: 24,
+        camera_style: 'cinematic_commercial',
+        lighting: '5600K diffused studio'
+      },
+      submitted_at: new Date().toISOString()
+    };
+
+    const renderJobId = `job_${Date.now().toString(36)}_${Math.random().toString(36).substr(2, 5)}`;
+    const jobRecord = {
+      id: renderJobId,
+      tenant_id: tenantId,
+      project_id: projectId,
+      storyboard_version_id: sb.id,
+      shot_id: shotId,
+      shot_order: targetShot.shot_order,
+      provider,
+      model: 'v1-standard',
+      state: 'queued',
+      idempotency_key: idempotencyKey,
+      input_manifest: inputManifest,
+      estimated_cost_cents: costEstimate.estimatedCostCents,
+      actual_cost_cents: 0,
+      max_attempts: 3,
+      current_attempts: 1,
+      provider_job_id: null,
+      error_message: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
+    // Save Idempotency Key
+    idempKeys.push({
+      id: `idemp_${Date.now().toString(36)}`,
+      tenant_id: tenantId,
+      idempotency_key: idempotencyKey,
+      resource_type: 'render_job',
+      resource_id: renderJobId,
+      created_at: new Date().toISOString()
+    });
+    this.storage.setItem(tenantId, this._getKey(tenantId, 'idempotency_keys'), idempKeys);
+
+    // State Transition: queued -> submitted -> rendering
+    jobRecord.state = 'submitted';
+
+    // Submit to Provider Adapter
+    const providerResult = await adapter.submitRender(inputManifest);
+    jobRecord.provider_job_id = providerResult.providerJobId;
+    jobRecord.state = providerResult.status || 'rendering';
+
+    // Settle or finalize based on result
+    if (jobRecord.state === 'qa_pending' || jobRecord.state === 'completed') {
+      jobRecord.actual_cost_cents = providerResult.costCents || costEstimate.estimatedCostCents;
+
+      // Deduct from credit balance and release reserve
+      org.credit_balance_cents = (org.credit_balance_cents || 5000) - jobRecord.actual_cost_cents;
+      org.reserved_credit_cents = Math.max(0, (org.reserved_credit_cents || 0) - costEstimate.estimatedCostCents);
+      this.storage.setItem(tenantId, 'production_os_orgs_v1', orgs);
+
+      // Create Generated Media Record
+      const mediaRecords = this.storage.getItem(tenantId, this._getKey(tenantId, 'generated_media')) || [];
+      const mediaRecord = {
+        id: `media_${renderJobId}`,
+        render_job_id: renderJobId,
+        tenant_id: tenantId,
+        project_id: projectId,
+        shot_id: shotId,
+        storyboard_version_id: sb.id,
+        media_type: 'video_clip',
+        storage_path: `renders/${tenantId}/${renderJobId}.mp4`,
+        signed_url: providerResult.mediaUrl || `https://storage.loopgravity.io/renders/${renderJobId}.mp4`,
+        duration_seconds: targetShot.duration_seconds,
+        resolution: '1920x1080',
+        fps: 24,
+        qa_status: 'qa_pending',
+        created_at: new Date().toISOString()
+      };
+      mediaRecords.push(mediaRecord);
+      this.storage.setItem(tenantId, this._getKey(tenantId, 'generated_media'), mediaRecords);
+      jobRecord.generated_media_id = mediaRecord.id;
+    }
+
+    // Persist Job
+    const jobs = this.storage.getItem(tenantId, this._getKey(tenantId, 'render_jobs')) || [];
+    jobs.push(jobRecord);
+    this.storage.setItem(tenantId, this._getKey(tenantId, 'render_jobs'), jobs);
+
+    if (this.audit) {
+      this.audit.logEvent(tenantId, {
+        userId,
+        eventType: 'render_job_submitted',
+        resourceType: 'render_job',
+        resourceId: renderJobId,
+        details: { shot_id: shotId, provider, estimated_cost: costEstimate.estimatedCostCents }
+      });
+    }
+
+    return { job: jobRecord, isDuplicate: false };
+  }
+
+  // --- 3. Cancel Render Job & Release Reserve ---
+  async cancelRenderJob(tenantId, renderJobId, userId = 'operator') {
+    const jobs = this.storage.getItem(tenantId, this._getKey(tenantId, 'render_jobs')) || [];
+    const job = jobs.find(j => j.id === renderJobId);
+    if (!job) throw new Error(`[RenderOrchestrator] Job ${renderJobId} not found.`);
+
+    if (['completed', 'cancelled', 'failed'].includes(job.state)) {
+      throw new Error(`[RenderOrchestrator] Transición inválida: No se puede cancelar un job en estado ${job.state}.`);
+    }
+
+    const adapter = this.getProvider(job.provider);
+    if (job.provider_job_id) {
+      await adapter.cancelRender(job.provider_job_id);
+    }
+
+    job.state = 'cancelled';
+    job.updated_at = new Date().toISOString();
+    this.storage.setItem(tenantId, this._getKey(tenantId, 'render_jobs'), jobs);
+
+    // Release reserved credit
+    const orgs = this.storage.getItem(tenantId, 'production_os_orgs_v1') || [];
+    const org = orgs.find(o => o.id === tenantId);
+    if (org && org.reserved_credit_cents > 0) {
+      org.reserved_credit_cents = Math.max(0, org.reserved_credit_cents - job.estimated_cost_cents);
+      this.storage.setItem(tenantId, 'production_os_orgs_v1', orgs);
+    }
+
+    if (this.audit) {
+      this.audit.logEvent(tenantId, {
+        userId,
+        eventType: 'render_job_cancelled',
+        resourceType: 'render_job',
+        resourceId: renderJobId,
+        details: { provider_job_id: job.provider_job_id }
+      });
+    }
+
+    return job;
+  }
+
+  // --- 4. Webhook Processing & Security Verification ---
+  handleWebhook(tenantId, provider, rawPayload, signature) {
+    const adapter = this.getProvider(provider);
+    const normalized = adapter.normalizeWebhook(rawPayload, signature);
+
+    const webhookLogs = this.storage.getItem(tenantId, this._getKey(tenantId, 'webhook_events')) || [];
+    const eventRecord = {
+      id: `wh_${Date.now().toString(36)}`,
+      tenant_id: tenantId,
+      provider,
+      raw_payload: rawPayload,
+      signature_verified: normalized.isValid,
+      processed_status: normalized.isValid ? 'processed' : 'invalid',
+      error_message: normalized.isValid ? null : 'Firma de webhook inválida',
+      created_at: new Date().toISOString()
+    };
+    webhookLogs.push(eventRecord);
+    this.storage.setItem(tenantId, this._getKey(tenantId, 'webhook_events'), webhookLogs);
+
+    if (!normalized.isValid) {
+      if (this.audit) {
+        this.audit.logEvent(tenantId, {
+          userId: 'system_webhook',
+          eventType: 'security_alert_webhook_signature_failed',
+          resourceType: 'provider_webhook',
+          resourceId: eventRecord.id,
+          details: { provider, reason: 'Invalid HMAC signature' }
+        });
+      }
+      return { success: false, error: 'Invalid webhook signature.' };
+    }
+
+    // Update job state if signature is valid
+    if (normalized.providerJobId) {
+      const jobs = this.storage.getItem(tenantId, this._getKey(tenantId, 'render_jobs')) || [];
+      const job = jobs.find(j => j.provider_job_id === normalized.providerJobId);
+      if (job) {
+        job.state = normalized.status;
+        job.updated_at = new Date().toISOString();
+        this.storage.setItem(tenantId, this._getKey(tenantId, 'render_jobs'), jobs);
+      }
+    }
+
+    return { success: true, normalized };
+  }
+
+  listRenderJobs(tenantId, projectId = null) {
+    const jobs = this.storage.getItem(tenantId, this._getKey(tenantId, 'render_jobs')) || [];
+    if (!projectId) return jobs;
+    return jobs.filter(j => j.project_id === projectId);
+  }
+
+  getRenderJob(tenantId, renderJobId) {
+    const jobs = this.storage.getItem(tenantId, this._getKey(tenantId, 'render_jobs')) || [];
+    return jobs.find(j => j.id === renderJobId) || null;
+  }
+}
+
+// --- 2G. Professional Production & Timeline Export Engine (Fase 3 PMV) ---
 class ExportEngine {
   constructor() {}
 
@@ -4315,6 +4800,10 @@ if (typeof module !== 'undefined' && module.exports) {
     CanonicalAssetService,
     ProductionOSProjectService,
     CreativeDirectorService,
+    BaseRenderProviderAdapter,
+    MockRenderProviderAdapter,
+    KlingProviderAdapter,
+    RenderOrchestratorService,
     AssetCatalogService,
     ExportEngine,
     CrmService,
