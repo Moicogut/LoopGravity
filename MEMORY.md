@@ -115,19 +115,33 @@ Este documento registra las decisiones técnicas, estado de certificación, estr
 
 ---
 
-## ESTADO DE CERTIFICACIÓN GLOBAL
+## 5. Cierre de Sesión (20/08/2026) — Transición PMV a Production OS
 
-- **Fase 0 (Discovery & Viabilidad):** APROBADA y documentada.
-- **Fase 1 (Datos, RLS & Activos Canónicos):** IMPLEMENTADA y certificada.
-- **Fase 2 (Creative Director, Guion & Storyboard):** IMPLEMENTADA y certificada.
-- **Fase 3 (Render Orchestrator & Adaptadores):** IMPLEMENTADA y certificada con pruebas automatizadas.
-- **Suites de Pruebas Automatizadas Totales (53 / 53 PASS - 0 ERRORES):**
-  1. `test_pmv_storage_catalog.js` (4/4 PASS)
-  2. `test_pmv_phase3_export.js` (4/4 PASS)
-  3. `test_pmv_phase4_crm.js` (6/6 PASS)
-  4. `test_pmv_phase5_supabase.js` (4/4 PASS)
-  5. `test_pmv_performance_beats.js` (7/7 PASS)
-  6. `test_production_os_phase1.js` (6/6 PASS)
-  7. `test_production_os_phase2.js` (10/10 PASS)
-  8. `test_production_os_phase3.js` (12/12 PASS)
-- **Fases Restantes (Fase 4 a Fase 7):** En espera de auditoría de Fase 3 y autorización formal de la Dirección.
+### A. Entregables y Verificaciones Completadas:
+- **Scripts V2 de Migración y Verificación Disponibles en `main`:**
+  - [`supabase/migrations/20260820_migrate_pmv_to_production_os_v2.sql`](file:///c:/Users/Rolando/Downloads/Prueba%20equipo%20agentes/supabase/migrations/20260820_migrate_pmv_to_production_os_v2.sql)
+  - [`supabase/migrations/20260820_verify_production_os_transition_v2.sql`](file:///c:/Users/Rolando/Downloads/Prueba%20equipo%20agentes/supabase/migrations/20260820_verify_production_os_transition_v2.sql)
+- **Auditoría en Supabase Production Completada:**
+  - Row Level Security (RLS) habilitado en las **29 tablas** (5 PMV + 24 Production OS); políticas revisadas con cláusulas `USING` y `WITH CHECK`.
+  - Correspondencia tenants $\leftrightarrow$ organizations: **3/3** (`tenant-nexus-01`, `tenant-apex-02`, `tenant-solo-03`), sin discrepancias de nombres ni claves.
+  - Migración `asset_catalog` $\to$ `canonical_assets`: **8/8 registros** migrados defensivamente con sus versiones correspondientes.
+  - Integridad referencial auditada: **0 huérfanos** en `asset_links`, `scripts`, `render_jobs` y `canonical_assets`.
+  - Clave foránea aditiva creada y validada: `canonical_assets(legacy_catalog_id) REFERENCES public.asset_catalog(id) ON DELETE SET NULL`.
+- **Despliegue en Producción (Vercel):**
+  - Estado: **Ready** en producción.
+  - URL Activa: [https://loopgravity.vercel.app](https://loopgravity.vercel.app) cargando correctamente desde `main` (commit [`8a0a3c0`](https://github.com/Moicogut/LoopGravity/commit/8a0a3c0)).
+
+---
+
+## 6. TAREAS PENDIENTES OBLIGATORIAS
+
+1. **Pruebas Funcionales Manuales en Producción:**
+   - Probar navegación completa, Studio, catálogo de assets, flujos de creación/edición y verificar ausencia de errores en la consola del navegador.
+2. **Auditoría de Conexión de Backend en Producción:**
+   - Confirmar el backend Supabase efectivamente utilizado por la app desplegada en Vercel; no asumir configuración automática por variables de entorno sin verificación en red.
+3. **Automatización de Pruebas de Integridad & RLS:**
+   - Definir y ejecutar suites de pruebas automatizadas específicas para RLS y validación de claves foráneas en la base de datos.
+4. **Revisión de Hardening de `public.current_tenant_id()`:**
+   - Revisar en staging la función `public.current_tenant_id()`: actualmente es `SECURITY DEFINER`, retorna `text` y no tiene `search_path` explícitamente fijado (mitigar potencial búsqueda insegura). **No modificar producción sin pruebas previas en staging.**
+5. **Documentación Operativa:**
+   - Documentar en el README / guía técnica la migración V2, las políticas RLS y la nueva FK de compatibilidad.
